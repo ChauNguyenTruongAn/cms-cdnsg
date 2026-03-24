@@ -15,7 +15,8 @@ public class UnitService {
     private final UnitRepository unitRepository;
 
     public Unit findById(Long id) {
-        return unitRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found unit by id: " + id));
+        return unitRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found unit by id: " + id));
     }
 
     public List<Unit> findAllUnit() {

@@ -29,4 +29,6 @@ public class Material {
 
     @ManyToOne(fetch = FetchType.EAGER)
     private Unit unit;
+
+    private int inventory;
 }
