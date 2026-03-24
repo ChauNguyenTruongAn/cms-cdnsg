@@ -21,7 +21,7 @@ public class UnitController {
     private final UnitService unitService;
 
     @GetMapping
-    public ResponseEntity<?> get(@PathVariable Long id) {
+    public ResponseEntity<?> get(@RequestParam Long id) {
         Unit unit = unitService.findById(id);
         return ResponseEntity.ok(unit);
     }
