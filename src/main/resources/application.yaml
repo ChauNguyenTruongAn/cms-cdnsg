@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: warehouse-cdnsg
+
+  jpa:
+    hibernate:
+      ddl-auto: update
