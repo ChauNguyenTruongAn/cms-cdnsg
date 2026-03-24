@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
+import com.github.chaunguyentruongan.warehouse_cdnsg.exception.SqlDuplicateException;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -20,14 +23,18 @@ public class UnitService {
     }
 
     public Unit create(UnitRequest request) {
-        Unit unit = new Unit();
-        unit.setName(request.getName());
-        return unitRepository.save(unit);
+        try {
+            Unit unit = new Unit();
+            unit.setName(request.getName());
+            return unitRepository.save(unit);
+        } catch (RuntimeException e) {
+            throw new SqlDuplicateException(e.getMessage());
+        }
     }
 
     public Unit updateName(Long id, UnitRequest request) {
         Unit unit = unitRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Not found unit by id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Not found unit by id: " + id));
         unit.setName(request.getName());
         return unit;
     }

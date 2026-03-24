@@ -2,18 +2,18 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.configs;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@Configuration
+@Component
 public class CorsConfig {
 
     @Value("${app.cors.origin}")
     private String allowedOrigins;
 
     @Bean
-    public WebMvcConfigurer corsConfig() {
+    public WebMvcConfigurer corsConfigPath() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
