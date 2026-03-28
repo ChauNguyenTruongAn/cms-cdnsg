@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.SqlDuplicateException;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -49,6 +50,23 @@ public class MaterialService {
 
     public void delete(Long id) {
         materialRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void updateStock(Long materialId, int quantityChange) {
+        Material material = findById(materialId);
+
+        // Tính toán số lượng mới
+        int newQuantity = material.getInventory() + quantityChange;
+
+        // Validate để đảm bảo tồn kho không bị âm (rất quan trọng khi xuất hàng hoặc
+        // xóa phiếu nhập)
+        if (newQuantity < 0) {
+            throw new IllegalArgumentException("Tồn kho không đủ cho vật tư: " + material.getName());
+        }
+
+        material.setInventory(newQuantity);
+        materialRepository.save(material);
     }
 
 }
