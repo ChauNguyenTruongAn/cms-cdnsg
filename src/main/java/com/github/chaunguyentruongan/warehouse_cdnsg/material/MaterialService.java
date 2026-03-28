@@ -54,13 +54,13 @@ public class MaterialService {
 
     @Transactional
     public void updateStock(Long materialId, int quantityChange) {
-        Material material = findById(materialId);
+        // Sử dụng hàm có Lock để chống đụng độ dữ liệu khi nhiều người thao tác cùng
+        // lúc
+        Material material = materialRepository.findByIdWithLock(materialId)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found material id: " + materialId));
 
-        // Tính toán số lượng mới
         int newQuantity = material.getInventory() + quantityChange;
 
-        // Validate để đảm bảo tồn kho không bị âm (rất quan trọng khi xuất hàng hoặc
-        // xóa phiếu nhập)
         if (newQuantity < 0) {
             throw new IllegalArgumentException("Tồn kho không đủ cho vật tư: " + material.getName());
         }
