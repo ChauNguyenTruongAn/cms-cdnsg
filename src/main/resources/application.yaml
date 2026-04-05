@@ -20,6 +20,6 @@ app:
     origin: ${CORS_ORIGINS:http://localhost:5173}
 
 cloudinary:
-  cloud_name: petrol-user
-  api_key: 588188343441269
-  api_secret: PxRV89g2JdJH3WlnDh_LZfErGMw
+  cloud_name: ${CLOUD_NAME}
+  api_key: ${CLOUD_API_KEY}
+  api_secret: ${CLOUD_API_SECRET}

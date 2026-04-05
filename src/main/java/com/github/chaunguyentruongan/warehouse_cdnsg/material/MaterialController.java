@@ -39,7 +39,8 @@ public class MaterialController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String direction,
-            @RequestParam(required = false) String keyword) { // <--- Thêm param này
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) { // <--- THÊM PARAM NÀY
 
         Sort sort = direction.equalsIgnoreCase(Sort.Direction.ASC.name())
                 ? Sort.by(sortBy).ascending()
@@ -47,8 +48,8 @@ public class MaterialController {
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // Truyền keyword vào service
-        return ResponseEntity.ok(materialService.findAll(keyword, pageable));
+        // Truyền thêm status vào service
+        return ResponseEntity.ok(materialService.findAll(keyword, status, pageable));
     }
 
     @Operation(summary = "Cập nhật vật tư", description = "Chỉnh sửa thông tin (tên, đơn vị tính) của vật tư đang tồn tại theo ID.")
@@ -63,5 +64,11 @@ public class MaterialController {
         // Đã fix lỗi logic: Gọi service để thực sự xóa dưới Database
         materialService.delete(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Delete materials id: " + id);
+    }
+
+    @Operation(summary = "Thống kê vật tư", description = "Lấy các chỉ số tổng quan cho Dashboard")
+    @GetMapping("/stats")
+    public ResponseEntity<java.util.Map<String, Object>> getStats() {
+        return ResponseEntity.ok(materialService.getMaterialStats());
     }
 }

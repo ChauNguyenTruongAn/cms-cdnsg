@@ -18,5 +18,20 @@ public interface MaterialRepository extends JpaRepository<Material, Long> {
     @Query("SELECT m FROM Material m WHERE m.id = :id")
     Optional<Material> findByIdWithLock(@Param("id") Long id);
 
-    Page<Material> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    // CẬP NHẬT: Thêm câu query lọc kết hợp
+    @Query("SELECT m FROM Material m WHERE " +
+            "(:kw IS NULL OR :kw = '' OR LOWER(m.name) LIKE LOWER(CONCAT('%', :kw, '%'))) AND " +
+            "(:status IS NULL OR :status = '' OR " +
+            "(:status = 'LOW' AND m.inventory < 5) OR " +
+            "(:status = 'OK' AND m.inventory >= 5))")
+    Page<Material> searchWithFilter(@Param("kw") String kw, @Param("status") String status, Pageable pageable);
+
+    @Query("SELECT COALESCE(SUM(m.inventory), 0) FROM Material m")
+    long sumTotalInventory();
+
+    @Query("SELECT COUNT(m) FROM Material m WHERE m.inventory < 5")
+    long countLowStock();
+
+    @Query("SELECT COUNT(m) FROM Material m WHERE m.inventory >= 5")
+    long countOkStock();
 }

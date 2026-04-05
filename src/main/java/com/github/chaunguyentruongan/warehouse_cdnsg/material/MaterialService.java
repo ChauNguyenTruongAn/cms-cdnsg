@@ -71,11 +71,18 @@ public class MaterialService {
         materialRepository.save(material);
     }
 
-    public Page<Material> findAll(String keyword, Pageable pageable) {
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            return materialRepository.findByNameContainingIgnoreCase(keyword.trim(), pageable);
-        }
-        return materialRepository.findAll(pageable);
+    // Thay thế đoạn findAll cũ bằng đoạn này
+    public Page<Material> findAll(String keyword, String status, Pageable pageable) {
+        return materialRepository.searchWithFilter(keyword, status, pageable);
+    }
+
+    public java.util.Map<String, Object> getMaterialStats() {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        stats.put("totalTypes", materialRepository.count()); // Tổng số loại
+        stats.put("totalItems", materialRepository.sumTotalInventory()); // Tổng số lượng tồn
+        stats.put("lowStockCount", materialRepository.countLowStock()); // Sắp hết
+        stats.put("okStockCount", materialRepository.countOkStock()); // Ổn định
+        return stats;
     }
 
 }
