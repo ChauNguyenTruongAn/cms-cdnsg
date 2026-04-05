@@ -1,8 +1,9 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.projector_core;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_loan.ProjectorLoan;
-import com.github.chaunguyentruongan.warehouse_cdnsg.projector_maintenance.ProjectorMaintenance;
+import com.github.chaunguyentruongan.warehouse_cdnsg.projector_maintenance.ProjectorMaintenanceDetail;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Projector {
 
     @Id
@@ -35,11 +37,11 @@ public class Projector {
 
     // Liên kết 1-N tới lịch sử Bảo trì
     @OneToMany(mappedBy = "projector", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<ProjectorMaintenance> maintenances = new ArrayList<>();
+    @JsonIgnoreProperties("projector")
+    private List<ProjectorMaintenanceDetail> maintenances = new ArrayList<>();
 
     // Liên kết 1-N tới lịch sử Mượn/Trả
     @OneToMany(mappedBy = "projector", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnoreProperties("projector")
     private List<ProjectorLoan> loans = new ArrayList<>();
 }

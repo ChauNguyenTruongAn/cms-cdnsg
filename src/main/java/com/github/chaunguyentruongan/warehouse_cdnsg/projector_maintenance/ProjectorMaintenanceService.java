@@ -3,60 +3,127 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.projector_maintenance;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.Projector;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.ProjectorRepository;
-import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.ProjectorService;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.ProjectorStatus;
-
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ProjectorMaintenanceService {
 
-    private final ProjectorMaintenanceRepository maintenanceRepository;
+    private final ProjectorMaintenanceRepository projectorMaintenanceRepository;
+    private final MaintenanceTicketRepository ticketRepository;
     private final ProjectorRepository projectorRepository;
-    private final ProjectorService projectorService;
 
     @Transactional
-    public ProjectorMaintenance logMaintenance(MaintenanceRequest request) {
-        Projector projector = projectorRepository.findById(request.getProjectorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy chiếu!"));
-
-        // Tạo log bảo trì
-        ProjectorMaintenance log = ProjectorMaintenance.builder()
-                .projector(projector)
-                .maintenanceDate(
-                        request.getMaintenanceDate() != null ? request.getMaintenanceDate() : java.time.LocalDate.now())
-                .description(request.getDescription())
+    public MaintenanceTicket createTicket(MaintenanceTicketRequest request) {
+        // 1. Tạo thông tin chung của Phiếu
+        MaintenanceTicket ticket = MaintenanceTicket.builder()
+                .ticketCode(request.getTicketCode() != null ? request.getTicketCode()
+                        : "BT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .startDate(request.getStartDate() != null ? request.getStartDate() : LocalDate.now())
                 .technician(request.getTechnician())
-                .cost(request.getCost())
+                .generalNote(request.getGeneralNote())
+                .details(new ArrayList<>())
                 .build();
 
-        // Cập nhật trạng thái máy chiếu nếu có yêu cầu (Ví dụ: sửa xong thì rảnh, hỏng
-        // nặng thì BROKEN)
-        if (request.getUpdateProjectorStatusTo() != null) {
-            projector.setStatus(request.getUpdateProjectorStatusTo());
+        // 2. Xử lý danh sách máy chiếu kèm theo
+        for (MaintenanceDetailRequest detailReq : request.getDetails()) {
+            Projector projector = projectorRepository.findByIdWithLock(detailReq.getProjectorId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy máy chiếu ID: " + detailReq.getProjectorId()));
+
+            if (projector.getStatus() == ProjectorStatus.BORROWED || projector.getStatus() == ProjectorStatus.IN_USE) {
+                throw new IllegalArgumentException(
+                        "Máy chiếu " + projector.getName() + " đang được sử dụng/mượn, không thể mang đi bảo trì!");
+            }
+
+            projector.setStatus(ProjectorStatus.UNDER_MAINTENANCE);
+            projectorRepository.save(projector);
+
+            // SỬA LỖI TÊN CLASS TẠI ĐÂY (Thay ProjectorMaintenanceDetail thành
+            // ProjectorMaintenance)
+            ProjectorMaintenanceDetail detail = ProjectorMaintenanceDetail.builder()
+                    .ticket(ticket)
+                    .projector(projector)
+                    .description(detailReq.getDescription())
+                    .cost(detailReq.getCost())
+                    .build();
+
+            ticket.getDetails().add(detail);
+        }
+
+        return ticketRepository.save(ticket);
+    }
+
+    @Transactional
+    public MaintenanceTicket completeTicket(Long ticketId, LocalDate completionDate) {
+        MaintenanceTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu bảo trì!"));
+
+        if (ticket.getCompletionDate() != null) {
+            throw new IllegalArgumentException("Phiếu bảo trì này đã được hoàn tất trước đó!");
+        }
+
+        // 1. Cập nhật ngày hoàn tất
+        ticket.setCompletionDate(completionDate != null ? completionDate : LocalDate.now());
+
+        // 2. Nhả trạng thái cho tất cả máy chiếu trong phiếu về AVAILABLE
+        for (ProjectorMaintenanceDetail detail : ticket.getDetails()) {
+            Projector projector = detail.getProjector();
+            projector.setStatus(ProjectorStatus.AVAILABLE);
             projectorRepository.save(projector);
         }
 
-        return maintenanceRepository.save(log);
+        return ticketRepository.save(ticket);
     }
 
-    public Page<ProjectorMaintenance> getAllMaintenances(String keyword, Pageable pageable) {
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            return maintenanceRepository.searchHistory(keyword.trim(), pageable);
-        }
-        return maintenanceRepository.findAll(pageable);
+    public List<MaintenanceTicket> getAllTickets() {
+        return ticketRepository.findAll();
+    }
+
+    public List<ProjectorMaintenanceDetail> getHistoryByProjectorId(Long projectorId) {
+        // Lưu ý: Đảm bảo bạn đã inject ProjectorMaintenanceRepository vào đầu Service
+        // nhé
+        return projectorMaintenanceRepository.findHistoryByProjectorId(projectorId);
     }
 
     @Transactional
-    public Projector updateStatus(Long id, ProjectorStatus status) {
-        Projector projector = projectorService.findById(id);
-        projector.setStatus(status);
-        return projectorRepository.save(projector);
+    public MaintenanceTicket completeTicket(Long ticketId, CompleteMaintenanceRequest request) {
+        MaintenanceTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu bảo trì!"));
+
+        if (ticket.getCompletionDate() != null) {
+            throw new IllegalArgumentException("Phiếu bảo trì này đã được hoàn tất trước đó!");
+        }
+
+        // 1. Cập nhật ngày hoàn tất
+        ticket.setCompletionDate(request.getCompletionDate() != null ? request.getCompletionDate() : LocalDate.now());
+
+        // 2. Cập nhật trạng thái từng máy chiếu dựa theo dữ liệu Frontend gửi lên
+        for (ProjectorMaintenanceDetail detail : ticket.getDetails()) {
+            Projector projector = detail.getProjector();
+            ProjectorStatus newStatus = ProjectorStatus.AVAILABLE; // Mặc định nếu không có thông tin
+
+            if (request.getResults() != null) {
+                for (CompleteMaintenanceRequest.MaintenanceResult result : request.getResults()) {
+                    if (result.getProjectorId().equals(projector.getId()) && result.getStatus() != null) {
+                        newStatus = result.getStatus();
+                        break;
+                    }
+                }
+            }
+
+            projector.setStatus(newStatus);
+            projectorRepository.save(projector);
+        }
+
+        return ticketRepository.save(ticket);
     }
 }

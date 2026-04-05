@@ -1,6 +1,5 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.fire_extinguisher;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +8,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,12 +30,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Tag(name = "Quản lý Phòng cháy chữa cháy")
 public class FireExtinguisherController {
-    private final FireExtinguisherService service;
 
+    private final FireExtinguisherService service;
 
     @Operation(summary = "Lấy chi tiết 1 bình chữa cháy")
     @GetMapping("/{id}")
-    public ResponseEntity<FireExtinguisher> getById(@PathVariable Long id) {
+    public ResponseEntity<FireExtinguisherResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
     }
 
@@ -49,7 +47,7 @@ public class FireExtinguisherController {
 
     @Operation(summary = "Cập nhật thông tin cơ bản của bình")
     @PutMapping("/{id}")
-    public ResponseEntity<FireExtinguisher> update(@PathVariable Long id,
+    public ResponseEntity<FireExtinguisherResponse> update(@PathVariable Long id,
             @RequestBody FireExtinguisherRequest request) {
         return ResponseEntity.ok(service.update(id, request));
     }
@@ -61,8 +59,9 @@ public class FireExtinguisherController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Lấy danh sách bình chữa cháy có phân trang và tìm kiếm")
     @GetMapping
-    public ResponseEntity<Page<FireExtinguisher>> getAll(
+    public ResponseEntity<Page<FireExtinguisherResponse>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword) {
@@ -70,19 +69,25 @@ public class FireExtinguisherController {
         return ResponseEntity.ok(service.getAll(keyword, pageable));
     }
 
+    @Operation(summary = "Thêm mới bình chữa cháy")
     @PostMapping
-    public ResponseEntity<FireExtinguisher> create(@RequestBody FireExtinguisherRequest request) {
+    public ResponseEntity<FireExtinguisherResponse> create(@RequestBody FireExtinguisherRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
+    @Operation(summary = "Ghi nhận nạp bình", description = "Có thể tùy chỉnh ngày nạp, ngày hết hạn và ghi chú")
     @PatchMapping("/{id}/recharge")
-    @Operation(summary = "Ghi nhận nạp bình", description = "Chỉ cần truyền ngày nạp, hệ thống tự tính 6 tháng sau")
-    public ResponseEntity<FireExtinguisher> recharge(
+    public ResponseEntity<FireExtinguisherResponse> recharge(
             @PathVariable Long id,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseEntity.ok(service.recharge(id, date));
+            @RequestBody RechargeRequest request) {
+        return ResponseEntity.ok(service.recharge(
+                id,
+                request.getRechargeDate(),
+                request.getNextRechargeDate(),
+                request.getNote()));
     }
 
+    @Operation(summary = "Thống kê số lượng theo trạng thái")
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getStats() {
         Map<String, Long> stats = new HashMap<>();
@@ -90,5 +95,22 @@ public class FireExtinguisherController {
         stats.put("warning", service.countByStatus(MaintenanceStatus.WARNING));
         stats.put("expired", service.countByStatus(MaintenanceStatus.EXPIRED));
         return ResponseEntity.ok(stats);
+    }
+
+    @Operation(summary = "Thống kê nâng cao theo Khu vực và Loại bình")
+    @GetMapping("/stats/advanced")
+    public ResponseEntity<List<ZoneExtinguisherStatsResponse>> getAdvancedStats() {
+        return ResponseEntity.ok(service.getAdvancedStats());
+    }
+
+    @Operation(summary = "Ghi nhận nạp bình hàng loạt theo Khu vực", description = "Áp dụng ngày nạp và ngày hết hạn cho tất cả bình trong 1 Khu")
+    @PatchMapping("/zone/{zoneId}/recharge")
+    public ResponseEntity<Map<String, String>> rechargeByZone(
+            @PathVariable Long zoneId,
+            @RequestBody RechargeRequest request) {
+        service.rechargeByZone(zoneId, request);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Đã nạp thành công toàn bộ bình trong khu vực.");
+        return ResponseEntity.ok(response);
     }
 }

@@ -25,4 +25,11 @@ public interface ProjectorRepository extends JpaRepository<Projector, Long> {
 
     // Đếm số lượng máy chiếu theo trạng thái (Dùng cho báo cáo thống kê sau này)
     long countByStatus(ProjectorStatus status);
+
+    // Thêm câu query hỗ trợ tìm kiếm + lọc trạng thái
+    @Query("SELECT p FROM Projector p WHERE " +
+            "(:status IS NULL OR p.status = :status) AND " +
+            "(:kw IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :kw, '%')) OR LOWER(p.serialNumber) LIKE LOWER(CONCAT('%', :kw, '%')))")
+    Page<Projector> searchWithFilter(@Param("kw") String kw, @Param("status") ProjectorStatus status,
+            Pageable pageable);
 }

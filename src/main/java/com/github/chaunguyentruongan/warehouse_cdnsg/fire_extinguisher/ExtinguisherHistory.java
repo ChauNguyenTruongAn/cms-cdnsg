@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 @Entity
 @Table(name = "fire_extinguisher_history")
 @Getter
@@ -18,6 +20,7 @@ public class ExtinguisherHistory {
 
     @ManyToOne
     @JoinColumn(name = "extinguisher_id")
+    @JsonBackReference
     private FireExtinguisher extinguisher;
 
     private LocalDate rechargeDate; // Ngày thực hiện nạp

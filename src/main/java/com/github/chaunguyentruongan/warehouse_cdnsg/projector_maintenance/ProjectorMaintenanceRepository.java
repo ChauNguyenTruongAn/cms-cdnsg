@@ -5,18 +5,24 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-public interface ProjectorMaintenanceRepository extends JpaRepository<ProjectorMaintenance, Long> {
+@Repository
+public interface ProjectorMaintenanceRepository extends JpaRepository<ProjectorMaintenanceDetail, Long> {
 
-    // Hàm này giúp lấy toàn bộ lịch sử sửa chữa của 1 máy chiếu, sắp xếp từ mới
-    // nhất đến cũ nhất
-    List<ProjectorMaintenance> findByProjectorIdOrderByMaintenanceDateDesc(Long projectorId);
+    // SỬA LỖI: Join sang ticket (t) để lấy ngày startDate vì maintenanceDate không
+    // còn ở bảng chi tiết
+    @Query("SELECT m FROM ProjectorMaintenanceDetail m JOIN FETCH m.ticket t WHERE m.projector.id = :projectorId ORDER BY t.startDate DESC")
+    List<ProjectorMaintenanceDetail> findHistoryByProjectorId(@Param("projectorId") Long projectorId);
 
-    @Query("SELECT m FROM ProjectorMaintenance m JOIN FETCH m.projector p WHERE " +
+    // SỬA LỖI UnknownPathException: Thêm JOIN m.ticket t và đổi m.technician thành
+    // t.technician
+    @Query("SELECT m FROM ProjectorMaintenanceDetail m JOIN FETCH m.projector p JOIN m.ticket t WHERE " +
             "LOWER(p.name) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
             "LOWER(p.serialNumber) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
-            "LOWER(m.technician) LIKE LOWER(CONCAT('%', :kw, '%'))")
-    Page<ProjectorMaintenance> searchHistory(@Param("kw") String kw, Pageable pageable);
+            "LOWER(t.technician) LIKE LOWER(CONCAT('%', :kw, '%'))")
+    Page<ProjectorMaintenanceDetail> searchHistory(@Param("kw") String kw, Pageable pageable);
+
 }

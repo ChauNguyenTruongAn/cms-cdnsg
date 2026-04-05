@@ -34,6 +34,10 @@ public class ProjectorService {
         return projectorRepository.findAll(pageable);
     }
 
+    public Page<Projector> getAllWithFilter(String keyword, ProjectorStatus status, Pageable pageable) {
+        return projectorRepository.searchWithFilter(keyword, status, pageable);
+    }
+
     @Transactional
     public Projector create(ProjectorRequest request) {
         if (projectorRepository.existsBySerialNumber(request.getSerialNumber())) {

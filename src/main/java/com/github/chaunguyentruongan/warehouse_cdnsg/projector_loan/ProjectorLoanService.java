@@ -5,13 +5,14 @@ import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.Projector;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.ProjectorRepository;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.ProjectorStatus;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,39 +20,41 @@ public class ProjectorLoanService {
     private final ProjectorLoanRepository loanRepository;
     private final ProjectorRepository projectorRepository;
 
-    // NGHIỆP VỤ MƯỢN MÁY CHIẾU
     @Transactional
-    public ProjectorLoan borrowProjector(ProjectorLoanRequest request) {
-        // 1. Tìm và Khóa dòng máy chiếu lại (chống Race Condition)
-        Projector projector = projectorRepository.findByIdWithLock(request.getProjectorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy chiếu!"));
-
-        // 2. Validate trạng thái
-        if (projector.getStatus() != ProjectorStatus.AVAILABLE) {
-            throw new IllegalArgumentException(
-                    "Máy chiếu này không rảnh. Trạng thái hiện tại: " + projector.getStatus());
+    public List<ProjectorLoan> borrowProjector(ProjectorLoanRequest request) {
+        if (request.getProjectorIds() == null || request.getProjectorIds().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng chọn ít nhất 1 máy chiếu!");
         }
 
-        // 3. Đổi trạng thái máy chiếu thành ĐANG MƯỢN
-        projector.setStatus(ProjectorStatus.BORROWED);
-        projectorRepository.save(projector);
+        List<ProjectorLoan> createdLoans = new ArrayList<>();
 
-        // 4. Tạo phiếu mượn (Nhật ký)
-        ProjectorLoan loan = ProjectorLoan.builder()
-                .projector(projector)
-                .borrower(request.getBorrower())
-                .borrowDate(request.getBorrowDate() != null ? request.getBorrowDate() : LocalDate.now())
-                .status(LoanStatus.BORROWING)
-                .note(request.getNote())
-                .build();
+        for (Long pId : request.getProjectorIds()) {
+            Projector projector = projectorRepository.findByIdWithLock(pId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy máy chiếu ID: " + pId));
 
-        return loanRepository.save(loan);
+            if (projector.getStatus() != ProjectorStatus.AVAILABLE) {
+                throw new IllegalArgumentException("Máy chiếu " + projector.getName() + " không rảnh!");
+            }
+
+            projector.setStatus(ProjectorStatus.BORROWED);
+            projectorRepository.save(projector);
+
+            ProjectorLoan loan = ProjectorLoan.builder()
+                    .projector(projector)
+                    .borrower(request.getBorrower())
+                    .borrowDate(request.getBorrowDate() != null ? request.getBorrowDate() : LocalDate.now())
+                    .status(LoanStatus.BORROWING)
+                    .note(request.getNote())
+                    .build();
+
+            createdLoans.add(loanRepository.save(loan));
+        }
+        return createdLoans;
     }
 
-    // NGHIỆP VỤ TRẢ MÁY CHIẾU
+    // CẢI TIẾN: Cho phép truyền trạng thái của máy chiếu sau khi trả
     @Transactional
-    public ProjectorLoan returnProjector(Long loanId, String returnNote) {
-        // 1. Tìm phiếu mượn
+    public ProjectorLoan returnProjector(Long loanId, String returnNote, ProjectorStatus nextStatus) {
         ProjectorLoan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu mượn!"));
 
@@ -59,20 +62,56 @@ public class ProjectorLoanService {
             throw new IllegalArgumentException("Phiếu này đã được hoàn tất trả máy từ trước!");
         }
 
-        // 2. Cập nhật phiếu mượn
         loan.setStatus(LoanStatus.RETURNED);
         loan.setReturnDate(LocalDate.now());
-        loan.setNote(loan.getNote() + " | Ghi chú khi trả: " + returnNote);
+        loan.setNote(loan.getNote() + " | Ghi chú khi trả: " + (returnNote != null ? returnNote : ""));
 
-        // 3. Trả lại trạng thái RẢNH cho máy chiếu
         Projector projector = loan.getProjector();
-        projector.setStatus(ProjectorStatus.AVAILABLE);
+
+        // Nếu người dùng không truyền nextStatus, mặc định máy chiếu trả về là dùng
+        // được (AVAILABLE)
+        // Nếu trả về mà máy bị hỏng, họ có thể truyền BROKEN hoặc UNDER_MAINTENANCE
+        ProjectorStatus targetStatus = (nextStatus != null) ? nextStatus : ProjectorStatus.AVAILABLE;
+        projector.setStatus(targetStatus);
+
         projectorRepository.save(projector);
 
         return loanRepository.save(loan);
     }
 
+    // CẢI TIẾN: Thêm tính năng sửa phiếu mượn (đang mượn)
+    @Transactional
+    public ProjectorLoan updateLoan(Long loanId, ProjectorLoanRequest request) {
+        ProjectorLoan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu mượn!"));
+
+        // Chỉ cho phép sửa khi phiếu đang ở trạng thái mượn
+        if (loan.getStatus() == LoanStatus.RETURNED) {
+            throw new IllegalArgumentException("Không thể sửa phiếu đã hoàn tất trả máy!");
+        }
+
+        loan.setBorrower(request.getBorrower());
+        if (request.getBorrowDate() != null) {
+            loan.setBorrowDate(request.getBorrowDate());
+        }
+        if (request.getReturnDate() != null) {
+            loan.setReturnDate(request.getReturnDate());
+        }
+        loan.setNote(request.getNote());
+
+        return loanRepository.save(loan);
+    }
+
     public Page<ProjectorLoan> getAllLoans(Pageable pageable) {
-        return loanRepository.findAll(pageable); // Spring Data JPA đã có sẵn hàm findAll(Pageable)
+        return loanRepository.findAll(pageable);
+    }
+
+    public Page<ProjectorLoan> getAllWithFilter(String keyword, LoanStatus status, Pageable pageable) {
+        return loanRepository.searchWithFilter(keyword, status, pageable);
+    }
+
+    // Hàm lấy lịch sử mượn trả của riêng 1 máy chiếu
+    public List<ProjectorLoan> getHistoryByProjectorId(Long projectorId) {
+        return loanRepository.findByProjectorIdOrderByBorrowDateDesc(projectorId);
     }
 }

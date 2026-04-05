@@ -1,6 +1,6 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.projector_loan;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.Projector;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,6 +14,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class ProjectorLoan {
 
     @Id
@@ -22,7 +23,7 @@ public class ProjectorLoan {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "projector_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnoreProperties({"loans", "maintenances"})
     private Projector projector;
 
     // Người mượn hoặc Nơi mượn (VD: "Phòng thực hành 1", "Giảng viên Nguyễn Văn A")
