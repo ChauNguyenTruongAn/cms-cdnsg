@@ -19,13 +19,11 @@ public class Uniform {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UniformType type;
+    private String type;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UniformSize size;
+    private String size;
 
     private Long stock;
 }

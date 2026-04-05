@@ -1,5 +1,9 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.material;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,10 +32,23 @@ public class MaterialController {
         return ResponseEntity.ok(materialService.findById(id));
     }
 
-    @Operation(summary = "Lấy toàn bộ vật tư", description = "Trả về danh sách tất cả các vật tư đang có trong hệ thống.")
+    @Operation(summary = "Lấy toàn bộ vật tư (có phân trang)", description = "Trả về danh sách vật tư kèm thông tin phân trang.")
     @GetMapping("/all")
-    public ResponseEntity<?> getAll() {
-        return ResponseEntity.ok(materialService.findAll());
+    public ResponseEntity<Page<Material>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction,
+            @RequestParam(required = false) String keyword) { // <--- Thêm param này
+
+        Sort sort = direction.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Truyền keyword vào service
+        return ResponseEntity.ok(materialService.findAll(keyword, pageable));
     }
 
     @Operation(summary = "Cập nhật vật tư", description = "Chỉnh sửa thông tin (tên, đơn vị tính) của vật tư đang tồn tại theo ID.")

@@ -1,6 +1,8 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.uniform_import;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.github.chaunguyentruongan.warehouse_cdnsg.enums.ReceiptStatus;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -21,6 +23,7 @@ public class UniformImport {
 
     private LocalDate date;
     private String note;
+    private ReceiptStatus status;
 
     @Column(name = "name_response")
     private String nameResponse;

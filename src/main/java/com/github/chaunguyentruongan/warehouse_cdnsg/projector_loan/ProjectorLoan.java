@@ -1,0 +1,44 @@
+package com.github.chaunguyentruongan.warehouse_cdnsg.projector_loan;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.Projector;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Table(name = "projector_loan")
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ProjectorLoan {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "projector_id", nullable = false)
+    @JsonBackReference
+    private Projector projector;
+
+    // Người mượn hoặc Nơi mượn (VD: "Phòng thực hành 1", "Giảng viên Nguyễn Văn A")
+    @Column(nullable = false)
+    private String borrower;
+
+    @Column(nullable = false)
+    private LocalDate borrowDate;
+
+    // Ngày trả: Sẽ bị null khi trạng thái đang là BORROWING, được update khi người
+    // dùng đem trả
+    private LocalDate returnDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private LoanStatus status;
+
+    private String note;
+}

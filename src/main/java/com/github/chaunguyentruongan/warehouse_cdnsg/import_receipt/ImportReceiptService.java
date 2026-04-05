@@ -1,6 +1,7 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.import_receipt;
 
 import com.github.chaunguyentruongan.warehouse_cdnsg.configs.CorsConfig;
+import com.github.chaunguyentruongan.warehouse_cdnsg.enums.ReceiptStatus;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.material.Material;
 import com.github.chaunguyentruongan.warehouse_cdnsg.material.MaterialService;
@@ -9,6 +10,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,6 +43,15 @@ public class ImportReceiptService {
         ImportReceipt importReceipt = new ImportReceipt();
         importReceipt.setImportDate(request.getImportDate());
         importReceipt.setNote(request.getNote());
+
+        long countToday = importReceiptRepository.countByImportDate(request.getImportDate());
+        String dateStr = request.getImportDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String receiptCode = String.format("PN-%s-%03d", dateStr, countToday + 1);
+        importReceipt.setReceiptCode(receiptCode);
+
+        // 2. NGƯỜI LẬP PHIẾU (Tạm gán cứng, sau này lấy từ Spring Security Token)
+        importReceipt.setCreatedBy("Admin (Hệ thống)");
+        importReceipt.setStatus(ReceiptStatus.COMPLETED);
 
         List<ImportItem> importItems = request.getImportItemRequests()
                 .stream()
@@ -111,6 +122,12 @@ public class ImportReceiptService {
     public void delete(Long id) {
         ImportReceipt existing = findById(id);
 
+        if (existing.getStatus() == ReceiptStatus.CANCELLED) {
+            throw new RuntimeException("Phiếu này đã bị hủy từ trước!");
+        }
+
+        existing.setStatus(ReceiptStatus.CANCELLED);
+
         // 1. Hoàn tác (trừ đi) tồn kho của tất cả các mặt hàng trong phiếu nhập này
         for (ImportItem item : existing.getImportItems()) {
             // Truyền vào số âm để trừ đi
@@ -118,6 +135,6 @@ public class ImportReceiptService {
         }
 
         // 2. Sau khi đã trừ kho thành công, tiến hành xóa phiếu nhập
-        importReceiptRepository.delete(existing);
+        importReceiptRepository.save(existing);
     }
 }

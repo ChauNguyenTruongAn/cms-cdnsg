@@ -1,5 +1,6 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.uniform_import;
 
+import com.github.chaunguyentruongan.warehouse_cdnsg.enums.ReceiptStatus;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.uniform_core.UniformService;
 import lombok.RequiredArgsConstructor;
@@ -75,9 +76,12 @@ public class UniformImportService {
     @Transactional
     public void delete(Long id) {
         UniformImport existing = findById(id);
+        // 1. Hoàn tác kho
         for (UniformImportDetail item : existing.getDetails()) {
-            uniformService.updateStock(item.getUniform().getId(), -item.getQuantity()); // Xóa: Trừ (-) kho
+            uniformService.updateStock(item.getUniform().getId(), -item.getQuantity());
         }
-        importRepository.delete(existing);
+        // 2. Đổi trạng thái thay vì delete
+        existing.setStatus(ReceiptStatus.CANCELLED);
+        importRepository.save(existing);
     }
 }

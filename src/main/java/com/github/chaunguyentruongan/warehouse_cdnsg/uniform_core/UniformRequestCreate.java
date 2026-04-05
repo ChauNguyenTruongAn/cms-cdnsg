@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UniformRequestCreate {
-    private UniformType type;
-    private UniformSize size;
+    private String type;
+    private String size;
 }

@@ -2,6 +2,8 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.material;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
@@ -33,8 +35,8 @@ public class MaterialService {
                 .orElseThrow(() -> new ResourceNotFoundException("Not found material id: " + id));
     }
 
-    public List<Material> findAll() {
-        return materialRepository.findAll();
+    public Page<Material> findAll(Pageable pageable) {
+        return materialRepository.findAll(pageable);
     }
 
     public Material update(Long id, MaterialRequestCreate update) {
@@ -67,6 +69,13 @@ public class MaterialService {
 
         material.setInventory(newQuantity);
         materialRepository.save(material);
+    }
+
+    public Page<Material> findAll(String keyword, Pageable pageable) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return materialRepository.findByNameContainingIgnoreCase(keyword.trim(), pageable);
+        }
+        return materialRepository.findAll(pageable);
     }
 
 }

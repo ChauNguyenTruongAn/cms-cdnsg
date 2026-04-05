@@ -2,6 +2,8 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.material;
 
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +17,6 @@ public interface MaterialRepository extends JpaRepository<Material, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Material m WHERE m.id = :id")
     Optional<Material> findByIdWithLock(@Param("id") Long id);
+
+    Page<Material> findByNameContainingIgnoreCase(String name, Pageable pageable);
 }

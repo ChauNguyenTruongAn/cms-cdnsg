@@ -12,17 +12,18 @@ import java.time.LocalDate;
 
 public interface ImportReceiptRepository extends JpaRepository<ImportReceipt, Long> {
 
-    List<ImportReceipt> findByImportDateBetween(LocalDate from, LocalDate to);
+       List<ImportReceipt> findByImportDateBetween(LocalDate from, LocalDate to);
 
+       long countByImportDate(LocalDate importDate);
 
-    // Truy vấn kết hợp Lọc theo ngày, Tìm kiếm theo Note và Phân trang
-    @Query("SELECT i FROM ImportReceipt i WHERE " +
-           "(:fromDate IS NULL OR i.importDate >= :fromDate) AND " +
-           "(:toDate IS NULL OR i.importDate <= :toDate) AND " +
-           "(:note IS NULL OR LOWER(i.note) LIKE LOWER(CONCAT('%', :note, '%')))")
-    Page<ImportReceipt> searchAndFilter(
-            @Param("fromDate") LocalDate fromDate,
-            @Param("toDate") LocalDate toDate,
-            @Param("note") String note,
-            Pageable pageable);
+       // Truy vấn kết hợp Lọc theo ngày, Tìm kiếm theo Note và Phân trang
+       @Query("SELECT i FROM ImportReceipt i WHERE " +
+                     "(:fromDate IS NULL OR i.importDate >= :fromDate) AND " +
+                     "(:toDate IS NULL OR i.importDate <= :toDate) AND " +
+                     "(:note IS NULL OR LOWER(i.note) LIKE LOWER(CONCAT('%', :note, '%')))")
+       Page<ImportReceipt> searchAndFilter(
+                     @Param("fromDate") LocalDate fromDate,
+                     @Param("toDate") LocalDate toDate,
+                     @Param("note") String note,
+                     Pageable pageable);
 }

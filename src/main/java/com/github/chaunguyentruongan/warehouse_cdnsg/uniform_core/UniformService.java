@@ -3,6 +3,9 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.uniform_core;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.SqlDuplicateException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,15 @@ public class UniformService {
                 .orElseThrow(() -> new ResourceNotFoundException("Not found uniform id: " + id));
     }
 
+    public Page<Uniform> findAll(String keyword, Pageable pageable) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return uniformRepository.findByTypeContainingIgnoreCaseOrSizeContainingIgnoreCase(
+                    keyword.trim(), keyword.trim(), pageable);
+        }
+        return uniformRepository.findAll(pageable);
+    }
+
+    // Giữ lại hàm này nếu các service khác cần lấy toàn bộ list không phân trang
     public List<Uniform> findAll() {
         return uniformRepository.findAll();
     }
