@@ -8,18 +8,18 @@ spring:
     show-sql: true
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/cdnsg_db_v2}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   
 server:
   port: 8080
 
 app:
   cors:
-    origin: ${CORS_ORIGINS:http://localhost:5173}
+    origin: ${APP_CORS_ORIGIN:http://localhost:5173}
 
 cloudinary:
-  cloud_name: ${CLOUD_NAME}
-  api_key: ${CLOUD_API_KEY}
-  api_secret: ${CLOUD_API_SECRET}
+  cloud_name: ${CLOUDINARY_NAME}
+  api_key: ${CLOUDINARY_KEY}
+  api_secret: ${CLOUDINARY_SECRET}
