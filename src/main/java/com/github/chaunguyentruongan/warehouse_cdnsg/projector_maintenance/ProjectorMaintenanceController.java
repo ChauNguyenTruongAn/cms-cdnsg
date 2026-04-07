@@ -41,4 +41,12 @@ public class ProjectorMaintenanceController {
             @RequestBody CompleteMaintenanceRequest request) { // SỬA ĐỔI Ở ĐÂY
         return ResponseEntity.ok(maintenanceService.completeTicket(id, request));
     }
+
+    @Operation(summary = "Cập nhật phiếu bảo trì đang diễn ra")
+    @PutMapping("/{id}")
+    public ResponseEntity<MaintenanceTicket> updateTicket(
+            @PathVariable Long id,
+            @RequestBody MaintenanceTicketRequest request) {
+        return ResponseEntity.ok(maintenanceService.updateTicket(id, request));
+    }
 }

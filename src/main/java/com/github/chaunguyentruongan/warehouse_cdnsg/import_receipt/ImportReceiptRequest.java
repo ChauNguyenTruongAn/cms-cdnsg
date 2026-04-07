@@ -14,6 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ImportReceiptRequest {
     private LocalDate importDate;
+    private String invoiceCode;
     private String note;
     private List<ImportItemRequest> importItemRequests;
 }

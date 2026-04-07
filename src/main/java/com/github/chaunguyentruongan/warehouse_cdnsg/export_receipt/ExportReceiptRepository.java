@@ -14,12 +14,13 @@ public interface ExportReceiptRepository extends JpaRepository<ExportReceipt, Lo
         @Query("SELECT e FROM ExportReceipt e WHERE " +
                         "(:fromDate IS NULL OR e.exportDate >= :fromDate) AND " +
                         "(:toDate IS NULL OR e.exportDate <= :toDate) AND " +
-                        "(:note IS NULL OR LOWER(e.note) LIKE LOWER(CONCAT('%', :note, '%'))) AND " +
-                        "(:department IS NULL OR LOWER(e.department) LIKE LOWER(CONCAT('%', :department, '%')))")
+                        "(:keyword IS NULL OR :keyword = '' OR " +
+                        "LOWER(e.note) LIKE LOWER(CONCAT('%', :keyword, '%')) AND " +
+                        "LOWER(e.department) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                        "LOWER(e.receiptCode) LIKE LOWER(CONCAT('%', :keyword, '%')))")
         Page<ExportReceipt> searchAndFilter(
                         @Param("fromDate") LocalDate fromDate,
                         @Param("toDate") LocalDate toDate,
-                        @Param("note") String note,
-                        @Param("department") String department,
+                        @Param("keyword") String keyword,
                         Pageable pageable);
 }

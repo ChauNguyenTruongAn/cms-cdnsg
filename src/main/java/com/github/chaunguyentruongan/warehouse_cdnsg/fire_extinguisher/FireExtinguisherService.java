@@ -20,23 +20,32 @@ public class FireExtinguisherService {
 
     private final FireExtinguisherRepository repository;
     private final ExtinguisherHistoryRepository historyRepository;
-    // BỔ SUNG: Khai báo LocationRepository để xử lý liên kết vị trí
     private final LocationRepository locationRepository;
 
-    // BỔ SUNG: Số ngày cảnh báo sắp hết hạn (Cấu hình trong application.properties,
-    // mặc định là 30 ngày)
     @Value("${app.extinguisher.warning-days:30}")
     private int warningDays;
 
     // ---------------- HELPER METHODS ---------------- //
 
-    // Hàm nội bộ dùng để tìm Entity, tái sử dụng nhiều lần
     private FireExtinguisher getEntityById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bình chữa cháy id: " + id));
     }
 
-    // BỔ SUNG: Ánh xạ Entity sang Response DTO
+    // HÀM MỚI: Tự động tính toán trạng thái dựa trên ngày hết hạn
+    private MaintenanceStatus calculateStatus(LocalDate nextRechargeDate) {
+        if (nextRechargeDate == null)
+            return MaintenanceStatus.OK;
+
+        LocalDate today = LocalDate.now();
+        if (nextRechargeDate.isBefore(today) || nextRechargeDate.isEqual(today)) {
+            return MaintenanceStatus.EXPIRED;
+        } else if (nextRechargeDate.isBefore(today.plusDays(warningDays))) {
+            return MaintenanceStatus.WARNING;
+        }
+        return MaintenanceStatus.OK;
+    }
+
     private FireExtinguisherResponse mapToResponse(FireExtinguisher fe) {
         return FireExtinguisherResponse.builder()
                 .id(fe.getId())
@@ -72,7 +81,6 @@ public class FireExtinguisherService {
         } else {
             page = repository.findAll(pageable);
         }
-        // Map Page<Entity> sang Page<Response>
         return page.map(this::mapToResponse);
     }
 
@@ -81,13 +89,12 @@ public class FireExtinguisherService {
     }
 
     public List<ExtinguisherHistory> getHistory(Long id) {
-        getEntityById(id); // Kiểm tra tồn tại
+        getEntityById(id);
         return historyRepository.findByExtinguisherIdOrderByRechargeDateDesc(id);
     }
 
     @Transactional
     public FireExtinguisherResponse create(FireExtinguisherRequest request) {
-        // Tìm Location từ ID
         Location location = locationRepository.findById(request.getLocationId())
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Không tìm thấy Vị trí id: " + request.getLocationId()));
@@ -109,7 +116,6 @@ public class FireExtinguisherService {
     public FireExtinguisherResponse update(Long id, FireExtinguisherRequest request) {
         FireExtinguisher fe = getEntityById(id);
 
-        // Cập nhật Vị trí nếu có thay đổi
         Location location = locationRepository.findById(request.getLocationId())
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Không tìm thấy Vị trí id: " + request.getLocationId()));
@@ -130,19 +136,19 @@ public class FireExtinguisherService {
         repository.delete(fe);
     }
 
-    // CẢI TIẾN: Nạp bình linh hoạt
+    // SỬA LỖI TẠI ĐÂY: Áp dụng trạng thái tức thời khi nạp bình
     @Transactional
     public FireExtinguisherResponse recharge(Long id, LocalDate rechargeDate, LocalDate nextRechargeDate, String note) {
         FireExtinguisher fe = getEntityById(id);
 
-        // Cho phép tùy chỉnh thời gian nạp. Nếu người dùng không nhập hạn, tự cộng thêm
-        // 6 tháng
         LocalDate finalNextDate = (nextRechargeDate != null) ? nextRechargeDate : rechargeDate.plusMonths(6);
         String finalNote = (note != null && !note.trim().isEmpty()) ? note : "Nạp bình bảo dưỡng";
 
         fe.setLastRechargeDate(rechargeDate);
         fe.setNextRechargeDate(finalNextDate);
-        fe.setStatus(MaintenanceStatus.OK);
+
+        // Thay thế fe.setStatus(MaintenanceStatus.OK) bằng hàm tự tính
+        fe.setStatus(calculateStatus(finalNextDate));
 
         ExtinguisherHistory history = ExtinguisherHistory.builder()
                 .extinguisher(fe)
@@ -155,27 +161,7 @@ public class FireExtinguisherService {
         return mapToResponse(repository.save(fe));
     }
 
-    // CẢI TIẾN: Sử dụng biến warningDays thay vì fix cứng số 15
-    @Transactional
-    public void updateAllStatuses() {
-        List<FireExtinguisher> list = repository.findAll();
-        LocalDate today = LocalDate.now();
-
-        for (FireExtinguisher fe : list) {
-            if (fe.getNextRechargeDate() == null)
-                continue;
-
-            if (fe.getNextRechargeDate().isBefore(today) || fe.getNextRechargeDate().isEqual(today)) {
-                fe.setStatus(MaintenanceStatus.EXPIRED);
-            } else if (fe.getNextRechargeDate().isBefore(today.plusDays(warningDays))) {
-                fe.setStatus(MaintenanceStatus.WARNING);
-            } else {
-                fe.setStatus(MaintenanceStatus.OK);
-            }
-        }
-        repository.saveAll(list);
-    }
-
+    // SỬA LỖI TẠI ĐÂY: Áp dụng trạng thái tức thời khi nạp hàng loạt theo khu vực
     @Transactional
     public void rechargeByZone(Long zoneId, RechargeRequest request) {
         List<FireExtinguisher> extinguishers = repository.findAllByLocationZoneId(zoneId);
@@ -184,18 +170,21 @@ public class FireExtinguisherService {
         }
 
         LocalDate rechargeDate = request.getRechargeDate();
-        // Nếu không có ngày hết hạn tùy chọn, tự cộng 6 tháng
         LocalDate nextDate = (request.getNextRechargeDate() != null) ? request.getNextRechargeDate()
                 : rechargeDate.plusMonths(6);
         String note = (request.getNote() != null && !request.getNote().trim().isEmpty()) ? request.getNote()
                 : "Nạp hàng loạt theo khu vực";
 
+        // Tính trước trạng thái để áp dụng cho cả lô
+        MaintenanceStatus newStatus = calculateStatus(nextDate);
+
         for (FireExtinguisher fe : extinguishers) {
             fe.setLastRechargeDate(rechargeDate);
             fe.setNextRechargeDate(nextDate);
-            fe.setStatus(MaintenanceStatus.OK);
 
-            // Lưu lịch sử cho từng bình
+            // Thay thế bằng hàm tự tính
+            fe.setStatus(newStatus);
+
             ExtinguisherHistory history = ExtinguisherHistory.builder()
                     .extinguisher(fe)
                     .rechargeDate(rechargeDate)
@@ -205,11 +194,23 @@ public class FireExtinguisherService {
             historyRepository.save(history);
         }
 
-        // Lưu toàn bộ bình đã cập nhật
         repository.saveAll(extinguishers);
     }
 
-    @Scheduled(cron = "0 0 1 * * ?") // Chạy vào 1h sáng mỗi ngày
+    // CẢI TIẾN: Hàm update lịch trình cũng sử dụng lại Helper Method để code gọn
+    // gàng hơn
+    @Transactional
+    public void updateAllStatuses() {
+        List<FireExtinguisher> list = repository.findAll();
+        for (FireExtinguisher fe : list) {
+            if (fe.getNextRechargeDate() != null) {
+                fe.setStatus(calculateStatus(fe.getNextRechargeDate()));
+            }
+        }
+        repository.saveAll(list);
+    }
+
+    @Scheduled(cron = "0 0 1 * * ?") // Vẫn giữ Cron job để tự quét mỗi 1h sáng
     @Transactional
     public void updateAllStatusesTask() {
         updateAllStatuses();

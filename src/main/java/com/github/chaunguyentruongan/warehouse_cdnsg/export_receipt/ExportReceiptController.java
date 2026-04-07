@@ -29,7 +29,7 @@ public class ExportReceiptController {
         return ResponseEntity.status(HttpStatus.CREATED).body(exportReceiptService.create(request));
     }
 
-    @Operation(summary = "Lấy danh sách phiếu xuất", description = "Hỗ trợ phân trang, tìm kiếm theo ngày, ghi chú và phòng ban")
+    @Operation(summary = "Lấy danh sách phiếu xuất")
     @GetMapping
     public ResponseEntity<Page<ExportReceipt>> getAll(
             @RequestParam(defaultValue = "0") int page,
@@ -38,14 +38,13 @@ public class ExportReceiptController {
             @RequestParam(defaultValue = "desc") String direction,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String note,
-            @RequestParam(required = false) String department) {
+            @RequestParam(required = false) String keyword) { // SỬA THÀNH KEYWORD ĐỂ TÌM TẤT CẢ
 
         Sort sort = direction.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<ExportReceipt> result = exportReceiptService.getAll(fromDate, toDate, note, department, pageable);
+        Page<ExportReceipt> result = exportReceiptService.getAll(fromDate, toDate, keyword, pageable);
         return ResponseEntity.ok(result);
     }
 

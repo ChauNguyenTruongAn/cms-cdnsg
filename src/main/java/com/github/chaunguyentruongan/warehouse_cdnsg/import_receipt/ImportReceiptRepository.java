@@ -20,10 +20,13 @@ public interface ImportReceiptRepository extends JpaRepository<ImportReceipt, Lo
        @Query("SELECT i FROM ImportReceipt i WHERE " +
                      "(:fromDate IS NULL OR i.importDate >= :fromDate) AND " +
                      "(:toDate IS NULL OR i.importDate <= :toDate) AND " +
-                     "(:note IS NULL OR LOWER(i.note) LIKE LOWER(CONCAT('%', :note, '%')))")
+                     "(:keyword IS NULL OR :keyword = '' OR " +
+                     "LOWER(i.note) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                     "LOWER(i.receiptCode) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                     "LOWER(i.receiptCode) LIKE LOWER(CONCAT('%', :keyword, '%')))")
        Page<ImportReceipt> searchAndFilter(
                      @Param("fromDate") LocalDate fromDate,
                      @Param("toDate") LocalDate toDate,
-                     @Param("note") String note,
+                     @Param("keyword") String keyword,
                      Pageable pageable);
 }

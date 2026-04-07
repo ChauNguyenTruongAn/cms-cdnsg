@@ -37,16 +37,15 @@ public class ImportReceiptController {
             @RequestParam(defaultValue = "desc") String direction,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String note) {
+            @RequestParam(required = false) String keyword) { // ĐỔI TÊN BIẾN THÀNH keyword
 
         Sort sort = direction.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<ImportReceipt> result = importReceiptService.getAll(fromDate, toDate, note, pageable);
+        Page<ImportReceipt> result = importReceiptService.getAll(fromDate, toDate, keyword, pageable);
         return ResponseEntity.ok(result);
     }
-
     // GET BY ID
     @GetMapping("/{id}")
     public ResponseEntity<ImportReceipt> getById(@PathVariable Long id) {

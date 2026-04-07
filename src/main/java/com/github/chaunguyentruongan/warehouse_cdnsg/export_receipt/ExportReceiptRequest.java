@@ -15,6 +15,7 @@ import lombok.Setter;
 public class ExportReceiptRequest {
     private LocalDate exportDate;
     private String note;
+    private String invoiceCode;
     private String department;
     private String recipient;
     private List<ExportItemRequest> exportItemRequests;

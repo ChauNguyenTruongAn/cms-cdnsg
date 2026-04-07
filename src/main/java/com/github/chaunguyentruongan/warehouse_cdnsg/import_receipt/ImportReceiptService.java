@@ -1,17 +1,13 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.import_receipt;
 
-import com.github.chaunguyentruongan.warehouse_cdnsg.configs.CorsConfig;
 import com.github.chaunguyentruongan.warehouse_cdnsg.enums.ReceiptStatus;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
-import com.github.chaunguyentruongan.warehouse_cdnsg.material.Material;
 import com.github.chaunguyentruongan.warehouse_cdnsg.material.MaterialService;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,11 +42,15 @@ public class ImportReceiptService {
 
         long countToday = importReceiptRepository.countByImportDate(request.getImportDate());
         String dateStr = request.getImportDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String receiptCode = String.format("PN-%s-%03d", dateStr, countToday + 1);
-        importReceipt.setReceiptCode(receiptCode);
+        if (request.getInvoiceCode().equalsIgnoreCase("")) {
+            String receiptCode = String.format("PN-%s-%03d", dateStr, countToday + 1);
+            importReceipt.setReceiptCode(receiptCode);
+        } else {
+            importReceipt.setReceiptCode(request.getInvoiceCode());
+        }
 
         // 2. NGƯỜI LẬP PHIẾU (Tạm gán cứng, sau này lấy từ Spring Security Token)
-        importReceipt.setCreatedBy("Admin (Hệ thống)");
+        importReceipt.setCreatedBy("Admin");
         importReceipt.setStatus(ReceiptStatus.COMPLETED);
 
         List<ImportItem> importItems = request.getImportItemRequests()
@@ -73,8 +73,8 @@ public class ImportReceiptService {
     }
 
     // READ - Lọc & Phân trang
-    public Page<ImportReceipt> getAll(LocalDate fromDate, LocalDate toDate, String note, Pageable pageable) {
-        return importReceiptRepository.searchAndFilter(fromDate, toDate, note, pageable);
+    public Page<ImportReceipt> getAll(LocalDate fromDate, LocalDate toDate, String keyword, Pageable pageable) {
+        return importReceiptRepository.searchAndFilter(fromDate, toDate, keyword, pageable);
     }
 
     // UPDATE
@@ -95,6 +95,7 @@ public class ImportReceiptService {
         // BƯỚC 2: CẬP NHẬT THÔNG TIN PHIẾU
         existing.setImportDate(request.getImportDate());
         existing.setNote(request.getNote());
+        existing.setReceiptCode(request.getInvoiceCode());
 
         // BƯỚC 3: ÁP DỤNG TRẠNG THÁI MỚI
         // Lặp qua danh sách request mới, cộng kho và tạo item mới
