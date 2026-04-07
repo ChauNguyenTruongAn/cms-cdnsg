@@ -95,7 +95,6 @@ public class ImportReceiptService {
         // BƯỚC 2: CẬP NHẬT THÔNG TIN PHIẾU
         existing.setImportDate(request.getImportDate());
         existing.setNote(request.getNote());
-        existing.setReceiptCode(request.getInvoiceCode());
 
         // BƯỚC 3: ÁP DỤNG TRẠNG THÁI MỚI
         // Lặp qua danh sách request mới, cộng kho và tạo item mới
