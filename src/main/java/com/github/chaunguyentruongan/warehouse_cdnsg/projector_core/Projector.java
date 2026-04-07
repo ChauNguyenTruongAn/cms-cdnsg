@@ -38,10 +38,12 @@ public class Projector {
     // Liên kết 1-N tới lịch sử Bảo trì
     @OneToMany(mappedBy = "projector", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("projector")
+    @Builder.Default
     private List<ProjectorMaintenanceDetail> maintenances = new ArrayList<>();
 
     // Liên kết 1-N tới lịch sử Mượn/Trả
     @OneToMany(mappedBy = "projector", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("projector")
+    @Builder.Default
     private List<ProjectorLoan> loans = new ArrayList<>();
 }

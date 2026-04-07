@@ -1,9 +1,5 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.material;
 
-import java.util.List;
-
-import com.github.chaunguyentruongan.warehouse_cdnsg.import_receipt.ImportItem;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

@@ -34,5 +34,6 @@ public class MaintenanceTicket {
 
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("ticket")
+    @Builder.Default
     private List<ProjectorMaintenanceDetail> details = new ArrayList<>();
 }
