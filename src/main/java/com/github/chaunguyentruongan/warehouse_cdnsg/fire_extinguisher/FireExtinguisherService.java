@@ -133,6 +133,10 @@ public class FireExtinguisherService {
     @Transactional
     public void delete(Long id) {
         FireExtinguisher fe = getEntityById(id);
+        List<ExtinguisherHistory> feHis = historyRepository.findByExtinguisherIdOrderByRechargeDateDesc(id);
+        feHis.forEach(his -> {
+            historyRepository.deleteById(his.getId());
+        });
         repository.delete(fe);
     }
 

@@ -13,12 +13,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+// ... các import khác
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+
 @Table(name = "material")
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+// Tự động chuyển lệnh delete thành update deleted = true
+@SQLDelete(sql = "UPDATE material SET deleted = true WHERE id=?")
+// Mặc định chỉ lấy các bản ghi chưa xóa
+@Where(clause = "deleted = false")
 public class Material {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,5 +38,9 @@ public class Material {
     @ManyToOne(fetch = FetchType.EAGER)
     private Unit unit;
 
-    private int inventory;    
+    private int inventory;
+
+    // Thêm trường này để đánh dấu xóa mềm
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

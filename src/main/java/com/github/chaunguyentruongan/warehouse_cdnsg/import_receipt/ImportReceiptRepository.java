@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,6 +16,10 @@ public interface ImportReceiptRepository extends JpaRepository<ImportReceipt, Lo
        List<ImportReceipt> findByImportDateBetween(LocalDate from, LocalDate to);
 
        long countByImportDate(LocalDate importDate);
+
+       @Modifying
+       @Query("DELETE FROM ImportItem i WHERE i.material.id = :materialId")
+       void deleteItemsByMaterialId(@Param("materialId") Long materialId);
 
        // Truy vấn kết hợp Lọc theo ngày, Tìm kiếm theo Note và Phân trang
        @Query("SELECT i FROM ImportReceipt i WHERE " +

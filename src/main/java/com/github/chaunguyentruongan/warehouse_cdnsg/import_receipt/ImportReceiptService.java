@@ -137,4 +137,10 @@ public class ImportReceiptService {
         // 2. Sau khi đã trừ kho thành công, tiến hành xóa phiếu nhập
         importReceiptRepository.save(existing);
     }
+
+    @Transactional
+    public void deleteByMaterialId(Long id) {
+        // Xóa trực tiếp các dòng chi tiết trong phiếu nhập liên quan đến vật tư này
+        importReceiptRepository.deleteItemsByMaterialId(id);
+    }
 }

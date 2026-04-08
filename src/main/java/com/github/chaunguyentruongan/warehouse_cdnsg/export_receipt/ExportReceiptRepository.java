@@ -4,12 +4,17 @@ import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ExportReceiptRepository extends JpaRepository<ExportReceipt, Long> {
 
         long countByExportDate(LocalDate exportDate);
+
+        @Modifying
+        @Query("DELETE FROM ExportItem i WHERE i.material.id = :materialId")
+        void deleteItemsByMaterialId(@Param("materialId") Long materialId);
 
         @Query("SELECT e FROM ExportReceipt e WHERE " +
                         "(:fromDate IS NULL OR e.exportDate >= :fromDate) AND " +

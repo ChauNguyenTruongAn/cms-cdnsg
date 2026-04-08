@@ -1,20 +1,32 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.material;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.SqlDuplicateException;
+import com.github.chaunguyentruongan.warehouse_cdnsg.export_receipt.ExportReceiptService;
+import com.github.chaunguyentruongan.warehouse_cdnsg.import_receipt.ImportReceiptService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class MaterialService {
     private final MaterialRepository materialRepository;
+    private final ImportReceiptService importReceiptService;
+    private final ExportReceiptService exportReceiptService;
     private final UnitService unitService;
+
+    public MaterialService(MaterialRepository materialRepository, @Lazy ImportReceiptService importReceiptService,
+            @Lazy ExportReceiptService exportReceiptService, UnitService unitService) {
+        this.materialRepository = materialRepository;
+        this.importReceiptService = importReceiptService;
+        this.exportReceiptService = exportReceiptService;
+        this.unitService = unitService;
+    }
 
     public Material create(MaterialRequestCreate request) {
         try {
@@ -22,6 +34,7 @@ public class MaterialService {
             newMaterial.setName(request.getName());
             newMaterial.setUnit(unitService.findById(request.getUnit_id()));
             newMaterial.setInventory(0);
+            newMaterial.setDeleted(false);
             return materialRepository.save(newMaterial);
         } catch (Exception e) {
             throw new SqlDuplicateException(e.getMessage());
@@ -48,8 +61,15 @@ public class MaterialService {
         return materialRepository.save(material);
     }
 
+    @Transactional
     public void delete(Long id) {
-        materialRepository.deleteById(id);
+        Material material = materialRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy vật tư ID: " + id));
+
+        importReceiptService.deleteByMaterialId(material.getId());
+        exportReceiptService.deleteByMaterialId(material.getId());
+
+        materialRepository.delete(material);
     }
 
     @Transactional

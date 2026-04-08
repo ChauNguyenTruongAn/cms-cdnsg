@@ -41,7 +41,8 @@ public class ExportReceiptService {
         long countToday = exportReceiptRepository.countByExportDate(request.getExportDate());
 
         // LOGIC MỚI ÁP DỤNG MÃ TỰ NHẬP
-        if (request.getInvoiceCode() != null && !request.getInvoiceCode().trim().isEmpty() && !request.getInvoiceCode().equalsIgnoreCase("")) {
+        if (request.getInvoiceCode() != null && !request.getInvoiceCode().trim().isEmpty()
+                && !request.getInvoiceCode().equalsIgnoreCase("")) {
             exportReceipt.setReceiptCode(request.getInvoiceCode());
         } else {
             String receiptCode = String.format("PX-%s-%03d", dateStr, countToday + 1);
@@ -117,5 +118,10 @@ public class ExportReceiptService {
         }
 
         exportReceiptRepository.save(existing);
+    }
+
+    @Transactional
+    public void deleteByMaterialId(Long id) {
+        exportReceiptRepository.deleteItemsByMaterialId(id);
     }
 }
