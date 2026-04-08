@@ -32,7 +32,7 @@ public class Material {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     String name;
 
     @ManyToOne(fetch = FetchType.EAGER)
