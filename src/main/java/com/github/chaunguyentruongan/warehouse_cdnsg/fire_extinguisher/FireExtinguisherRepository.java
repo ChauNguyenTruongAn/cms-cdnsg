@@ -12,29 +12,36 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface FireExtinguisherRepository extends JpaRepository<FireExtinguisher, Long> {
 
-    // CẬP NHẬT: JOIN với location và zone để tìm kiếm
-    @Query("SELECT f FROM FireExtinguisher f " +
-            "JOIN f.location l " +
-            "JOIN l.zone z " +
-            "WHERE LOWER(f.type) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
-            "LOWER(l.name) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
-            "LOWER(z.name) LIKE LOWER(CONCAT('%', :kw, '%'))")
-    Page<FireExtinguisher> search(@Param("kw") String kw, Pageable pageable);
+        // CẬP NHẬT: Thêm bộ lọc zoneId, type, và weight
+        @Query("SELECT f FROM FireExtinguisher f " +
+                        "JOIN f.location l " +
+                        "JOIN l.zone z " +
+                        "WHERE (:kw IS NULL OR :kw = '' OR " +
+                        "LOWER(f.type) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
+                        "LOWER(l.name) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
+                        "LOWER(z.name) LIKE LOWER(CONCAT('%', :kw, '%'))) " +
+                        "AND (:zoneId IS NULL OR z.id = :zoneId) " +
+                        "AND (:type IS NULL OR :type = '' OR f.type = :type) " +
+                        "AND (:weight IS NULL OR f.weight = :weight)")
+        Page<FireExtinguisher> searchWithFilters(
+                        @Param("kw") String kw,
+                        @Param("zoneId") Long zoneId,
+                        @Param("type") String type,
+                        @Param("weight") String weight,
+                        Pageable pageable);
 
-    long countByStatus(MaintenanceStatus status);
+        long countByStatus(MaintenanceStatus status);
 
-    // BỔ SUNG: Hỗ trợ tìm theo Vị trí
-    Page<FireExtinguisher> findByLocationId(Long locationId, Pageable pageable);
+        Page<FireExtinguisher> findByLocationId(Long locationId, Pageable pageable);
 
-    // BỔ SUNG: Hỗ trợ tìm theo Khu vực
-    Page<FireExtinguisher> findByLocationZoneId(Long zoneId, Pageable pageable);
+        Page<FireExtinguisher> findByLocationZoneId(Long zoneId, Pageable pageable);
 
-    List<FireExtinguisher> findAllByLocationZoneId(Long zoneId);
+        List<FireExtinguisher> findAllByLocationZoneId(Long zoneId);
 
-    // Báo cáo thống kê: Gom nhóm theo Tên Khu và Loại bình
-    @Query("SELECT new com.github.chaunguyentruongan.warehouse_cdnsg.fire_extinguisher.ZoneExtinguisherStatsResponse(" +
-            "z.name, f.type, SUM(f.quantity), MAX(f.lastRechargeDate), MIN(f.nextRechargeDate)) " +
-            "FROM FireExtinguisher f JOIN f.location l JOIN l.zone z " +
-            "GROUP BY z.name, f.type")
-    List<ZoneExtinguisherStatsResponse> getAdvancedStats();
+        @Query("SELECT new com.github.chaunguyentruongan.warehouse_cdnsg.fire_extinguisher.ZoneExtinguisherStatsResponse("
+                        +
+                        "z.name, f.type, SUM(f.quantity), MAX(f.lastRechargeDate), MIN(f.nextRechargeDate)) " +
+                        "FROM FireExtinguisher f JOIN f.location l JOIN l.zone z " +
+                        "GROUP BY z.name, f.type")
+        List<ZoneExtinguisherStatsResponse> getAdvancedStats();
 }

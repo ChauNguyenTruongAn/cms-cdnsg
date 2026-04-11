@@ -1,7 +1,11 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.uniform_core;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.github.chaunguyentruongan.warehouse_cdnsg.uniform_import.UniformImportDetail;
+import com.github.chaunguyentruongan.warehouse_cdnsg.uniform_receipt.UniformReceiptDetail;
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Table(name = "uniform", uniqueConstraints = {
         // Đảm bảo không có 2 dòng nào trùng cả Type và Size
@@ -26,4 +30,14 @@ public class Uniform {
     private String size;
 
     private Long stock;
+
+    // TỰ ĐỘNG XÓA: Khi xóa Uniform, xóa luôn các chi tiết trong Phiếu Nhập chứa nó
+    @JsonIgnore
+    @OneToMany(mappedBy = "uniform", cascade = CascadeType.REMOVE)
+    private List<UniformImportDetail> importDetails;
+
+    // TỰ ĐỘNG XÓA: Khi xóa Uniform, xóa luôn các chi tiết trong Phiếu Xuất chứa nó
+    @JsonIgnore
+    @OneToMany(mappedBy = "uniform", cascade = CascadeType.REMOVE)
+    private List<UniformReceiptDetail> receiptDetails;
 }

@@ -10,18 +10,16 @@ import java.util.Optional;
 
 @Repository
 public interface BorrowTicketRepository extends JpaRepository<BorrowTicket, Long> {
-    Optional<BorrowTicket> findByBorrowCode(String borrowCode);
+        Optional<BorrowTicket> findByBorrowCode(String borrowCode);
 
-    Optional<BorrowTicket> findByReturnCode(String returnCode);
+        Optional<BorrowTicket> findByReturnCode(String returnCode);
 
-    @Query("SELECT t FROM BorrowTicket t WHERE " +
-            "(:kw IS NULL OR :kw = '' OR " +
-            "LOWER(t.borrowerName) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
-            "LOWER(t.borrowCode) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
-            "LOWER(t.returnCode) LIKE LOWER(CONCAT('%', :kw, '%'))) " +
-            "AND (:status IS NULL OR t.status = :status)" +
-            "AND t.material.deleted = true")
-
-    Page<BorrowTicket> searchWithFilter(@Param("kw") String kw, @Param("status") TicketStatus status,
-            Pageable pageable);
+        @Query("SELECT t FROM BorrowTicket t LEFT JOIN FETCH t.material WHERE " +
+                        "(:kw IS NULL OR :kw = '' OR " +
+                        "LOWER(t.borrowerName) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
+                        "LOWER(t.borrowCode) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
+                        "LOWER(t.returnCode) LIKE LOWER(CONCAT('%', :kw, '%'))) " +
+                        "AND (:status IS NULL OR t.status = :status)")
+        Page<BorrowTicket> searchWithFilter(@Param("kw") String kw, @Param("status") TicketStatus status,
+                        Pageable pageable);
 }

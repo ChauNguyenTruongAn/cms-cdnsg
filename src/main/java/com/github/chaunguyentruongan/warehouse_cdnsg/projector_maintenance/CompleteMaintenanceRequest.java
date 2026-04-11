@@ -1,5 +1,6 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.projector_maintenance;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.ProjectorStatus;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,12 +11,17 @@ import java.util.List;
 @Setter
 public class CompleteMaintenanceRequest {
     private LocalDate completionDate;
+
+    @JsonProperty("items") // Ánh xạ tên "items" từ React gửi sang biến "results"
     private List<MaintenanceResult> results;
 
     @Getter
     @Setter
     public static class MaintenanceResult {
+        @JsonProperty("id") // Ánh xạ id của React
         private Long projectorId;
-        private ProjectorStatus status; // Trạng thái sau bảo trì (AVAILABLE hoặc BROKEN)
+
+        @JsonProperty("nextStatus") // Ánh xạ trạng thái mà người dùng chọn
+        private ProjectorStatus status;
     }
 }

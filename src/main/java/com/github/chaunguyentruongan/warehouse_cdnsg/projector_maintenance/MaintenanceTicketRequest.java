@@ -8,11 +8,13 @@ import java.util.List;
 @Getter
 @Setter
 public class MaintenanceTicketRequest {
-    private String ticketCode; // Có thể để hệ thống tự sinh hoặc người dùng tự nhập
+    private String ticketCode;
     private LocalDate startDate;
-    private String technician; // Tên thợ/đối tác bảo trì
-    private String generalNote; // Ghi chú chung
+    private String technician;
+    private String generalNote;
 
-    // Danh sách các máy chiếu nằm trong đợt bảo trì này
+    // Nhận mảng [1, 2, 3] từ Frontend gửi lên
+    private List<Long> projectorIds;
+
     private List<MaintenanceDetailRequest> details;
 }

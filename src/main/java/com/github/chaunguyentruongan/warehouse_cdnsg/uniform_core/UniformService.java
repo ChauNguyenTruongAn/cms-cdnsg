@@ -2,6 +2,8 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.uniform_core;
 
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.SqlDuplicateException;
+import com.github.chaunguyentruongan.warehouse_cdnsg.uniform_import.UniformImportService;
+import com.github.chaunguyentruongan.warehouse_cdnsg.uniform_receipt.UniformReceiptService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -55,6 +57,7 @@ public class UniformService {
     }
 
     public void delete(Long id) {
+
         uniformRepository.deleteById(id);
     }
 

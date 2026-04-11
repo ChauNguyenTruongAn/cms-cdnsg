@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "maintenance_ticket")
@@ -21,7 +22,7 @@ public class MaintenanceTicket {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String ticketCode; // Mã phiếu (VD: BT-2024-001)
+    private String ticketCode; // Mã phiếu
 
     @Column(nullable = false)
     private LocalDate startDate; // Ngày bắt đầu bảo trì
@@ -36,4 +37,12 @@ public class MaintenanceTicket {
     @JsonIgnoreProperties("ticket")
     @Builder.Default
     private List<ProjectorMaintenanceDetail> details = new ArrayList<>();
+
+    // KHÔNG LƯU VÀO DB (@Transient): Tự động tính toán trạng thái trả về cho
+    // Frontend
+    @Transient
+    @JsonProperty("status")
+    public String getStatus() {
+        return this.completionDate == null ? "IN_PROGRESS" : "COMPLETED";
+    }
 }

@@ -59,14 +59,19 @@ public class FireExtinguisherController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Lấy danh sách bình chữa cháy có phân trang và tìm kiếm")
+    @Operation(summary = "Lấy danh sách bình chữa cháy có phân trang và tìm kiếm/lọc")
     @GetMapping
     public ResponseEntity<Page<FireExtinguisherResponse>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long zoneId,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String weight) {
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("nextRechargeDate").ascending());
-        return ResponseEntity.ok(service.getAll(keyword, pageable));
+
+        return ResponseEntity.ok(service.getAll(keyword, zoneId, type, weight, pageable));
     }
 
     @Operation(summary = "Thêm mới bình chữa cháy")

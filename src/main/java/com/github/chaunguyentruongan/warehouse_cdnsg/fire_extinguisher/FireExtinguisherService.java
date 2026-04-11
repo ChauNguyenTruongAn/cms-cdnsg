@@ -74,13 +74,14 @@ public class FireExtinguisherService {
         return repository.getAdvancedStats();
     }
 
-    public Page<FireExtinguisherResponse> getAll(String keyword, Pageable pageable) {
-        Page<FireExtinguisher> page;
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            page = repository.search(keyword.trim(), pageable);
-        } else {
-            page = repository.findAll(pageable);
-        }
+    public Page<FireExtinguisherResponse> getAll(String keyword, Long zoneId, String type, String weight,
+            Pageable pageable) {
+        String safeKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+        String safeType = (type != null && !type.trim().isEmpty()) ? type.trim() : null;
+
+        // Gọi thẳng hàm searchWithFilters với mọi tham số
+        Page<FireExtinguisher> page = repository.searchWithFilters(safeKeyword, zoneId, safeType, weight, pageable);
+
         return page.map(this::mapToResponse);
     }
 

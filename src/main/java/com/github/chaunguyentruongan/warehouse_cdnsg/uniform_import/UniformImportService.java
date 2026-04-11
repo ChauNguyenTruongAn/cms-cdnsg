@@ -1,9 +1,10 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.uniform_import;
 
-import com.github.chaunguyentruongan.warehouse_cdnsg.enums.ReceiptStatus;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.uniform_core.UniformService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -14,10 +15,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class UniformImportService {
-    private final UniformImportRepository importRepository;
-    private final UniformService uniformService;
+    private  UniformImportRepository importRepository;
+    private  UniformService uniformService;
+
+    
+
+    public UniformImportService(UniformImportRepository importRepository, @Lazy UniformService uniformService) {
+        this.importRepository = importRepository;
+        this.uniformService = uniformService;
+    }
 
     public UniformImport findById(Long id) {
         return importRepository.findById(id)
@@ -73,15 +80,15 @@ public class UniformImportService {
         return importRepository.save(existing);
     }
 
+    // ĐÃ SỬA: Chuyển thành Xóa cứng (Hard Delete) thay vì đổi Status
     @Transactional
     public void delete(Long id) {
         UniformImport existing = findById(id);
-        // 1. Hoàn tác kho
+        // 1. Hoàn tác kho (Xóa phiếu nhập kho thì phải TRỪ đi số lượng đã nhập)
         for (UniformImportDetail item : existing.getDetails()) {
             uniformService.updateStock(item.getUniform().getId(), -item.getQuantity());
         }
-        // 2. Đổi trạng thái thay vì delete
-        existing.setStatus(ReceiptStatus.CANCELLED);
-        importRepository.save(existing);
+        // 2. Xóa cứng hoàn toàn khỏi DB
+        importRepository.delete(existing);
     }
 }
