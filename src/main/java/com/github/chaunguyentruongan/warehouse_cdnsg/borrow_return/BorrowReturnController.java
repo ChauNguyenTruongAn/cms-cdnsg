@@ -21,10 +21,9 @@ public class BorrowReturnController {
 
     private final BorrowReturnService service;
 
-    @Operation(summary = "1. Tạo phiếu mượn vật tư", description = "Thủ kho tạo phiếu mượn mới. API trả về thông tin phiếu kèm mã borrowCode để Frontend vẽ mã QR.")
+    @Operation(summary = "1. Tạo phiếu mượn vật tư", description = "Thủ kho tạo phiếu mượn mới độc lập không phụ thuộc vật tư có sẵn. API trả về thông tin phiếu kèm mã borrowCode để Frontend vẽ mã QR.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Tạo phiếu thành công"),
-            @ApiResponse(responseCode = "400", description = "Lỗi dữ liệu (ví dụ: Tồn kho không đủ)")
+            @ApiResponse(responseCode = "200", description = "Tạo phiếu thành công")
     })
     @PostMapping("/create")
     public ResponseEntity<BorrowTicket> createTicket(@RequestBody BorrowRequestDTO request) {
@@ -81,5 +80,12 @@ public class BorrowReturnController {
     public ResponseEntity<BorrowTicket> updateTicket(@PathVariable Long id,
             @RequestBody UpdateBorrowTicketDTO request) {
         return ResponseEntity.ok(service.updateTicket(id, request));
+    }
+
+    @Operation(summary = "8. Xóa phiếu mượn", description = "Admin xóa mềm phiếu mượn.")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+        service.deleteTicket(id); // Bạn thêm hàm deleteTicket vào Service dùng ticketRepository.deleteById(id);
+        return ResponseEntity.ok().build();
     }
 }
