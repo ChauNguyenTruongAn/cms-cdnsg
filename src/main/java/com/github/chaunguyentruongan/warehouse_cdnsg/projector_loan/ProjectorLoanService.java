@@ -114,4 +114,8 @@ public class ProjectorLoanService {
     public List<ProjectorLoan> getHistoryByProjectorId(Long projectorId) {
         return loanRepository.findByProjectorIdOrderByBorrowDateDesc(projectorId);
     }
+
+    public void delete(Long id) {
+        loanRepository.deleteById(id);
+    }
 }

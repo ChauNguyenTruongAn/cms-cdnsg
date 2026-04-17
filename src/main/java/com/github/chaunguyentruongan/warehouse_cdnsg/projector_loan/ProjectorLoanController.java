@@ -63,4 +63,10 @@ public class ProjectorLoanController {
     public ResponseEntity<List<ProjectorLoan>> getHistoryByProjector(@PathVariable Long projectorId) {
         return ResponseEntity.ok(loanService.getHistoryByProjectorId(projectorId));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteProjectorById(@PathVariable Long id){
+        loanService.delete(id);
+        return (ResponseEntity<?>) ResponseEntity.noContent();
+    }
 }
