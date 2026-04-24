@@ -55,4 +55,11 @@ public class ProjectorMaintenanceController {
             @RequestBody MaintenanceTicketRequest request) {
         return ResponseEntity.ok(maintenanceService.updateTicket(id, request));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteTicket(
+            @PathVariable Long id) {
+                maintenanceService.deleteTicket(id);
+        return ResponseEntity.noContent().build();
+    }
 }

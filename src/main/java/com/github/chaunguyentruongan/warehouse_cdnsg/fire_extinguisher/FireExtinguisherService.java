@@ -22,7 +22,7 @@ public class FireExtinguisherService {
     private final ExtinguisherHistoryRepository historyRepository;
     private final LocationRepository locationRepository;
 
-    @Value("${app.extinguisher.warning-days:30}")
+    @Value("${app.extinguisher.warning-days:15}")
     private int warningDays;
 
     // ---------------- HELPER METHODS ---------------- //
@@ -74,13 +74,20 @@ public class FireExtinguisherService {
         return repository.getAdvancedStats();
     }
 
+    // ALTER TABLE fire_extinguisher ADD COLUMN type_normalized VARCHAR(255);
     public Page<FireExtinguisherResponse> getAll(String keyword, Long zoneId, String type, String weight,
+            MaintenanceStatus status,
             Pageable pageable) {
-        String safeKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-        String safeType = (type != null && !type.trim().isEmpty()) ? type.trim() : null;
+        String safeKeyword = (keyword != null && !keyword.trim().isEmpty()) ? FireExtinguisher.normalize(keyword.trim())
+                : null;
+
+        String safeType = (type != null && !type.trim().isEmpty())
+                ? FireExtinguisher.normalize(type.trim())
+                : null;
 
         // Gọi thẳng hàm searchWithFilters với mọi tham số
-        Page<FireExtinguisher> page = repository.searchWithFilters(safeKeyword, zoneId, safeType, weight, pageable);
+        Page<FireExtinguisher> page = repository.searchWithFilters(safeKeyword, zoneId, safeType, weight, status,
+                pageable);
 
         return page.map(this::mapToResponse);
     }

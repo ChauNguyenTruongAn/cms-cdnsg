@@ -12,22 +12,24 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface FireExtinguisherRepository extends JpaRepository<FireExtinguisher, Long> {
 
-        // CẬP NHẬT: Thêm bộ lọc zoneId, type, và weight
         @Query("SELECT f FROM FireExtinguisher f " +
                         "JOIN f.location l " +
                         "JOIN l.zone z " +
-                        "WHERE (:kw IS NULL OR :kw = '' OR " +
+                        "WHERE (:kw IS NULL OR " +
                         "LOWER(f.type) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
                         "LOWER(l.name) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
                         "LOWER(z.name) LIKE LOWER(CONCAT('%', :kw, '%'))) " +
                         "AND (:zoneId IS NULL OR z.id = :zoneId) " +
-                        "AND (:type IS NULL OR :type = '' OR f.type = :type) " +
-                        "AND (:weight IS NULL OR f.weight = :weight)")
+                        "AND (:type IS NULL OR LOWER(f.type) LIKE LOWER(CONCAT('%', :type, '%'))) " +
+                        "AND (:weight IS NULL OR f.weight = :weight) " + // Đã thêm khoảng trắng ở cuối
+                        "AND (:status IS NULL OR f.status = :status)" // Đã thêm điều kiện IS NULL cho status
+        )
         Page<FireExtinguisher> searchWithFilters(
                         @Param("kw") String kw,
                         @Param("zoneId") Long zoneId,
                         @Param("type") String type,
                         @Param("weight") String weight,
+                        @Param("status") MaintenanceStatus status,
                         Pageable pageable);
 
         long countByStatus(MaintenanceStatus status);

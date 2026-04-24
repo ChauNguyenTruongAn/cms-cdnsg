@@ -47,8 +47,6 @@ public class BorrowReturnService {
         ticket.setBorrowTime(LocalDateTime.now());
         ticket.setReturnCode("T-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
-        // Đã xóa logic trừ tồn kho material
-
         BorrowTicket savedTicket = ticketRepository.save(ticket);
         sendHtmlEmail(savedTicket, "BORROW", true);
 
@@ -96,7 +94,6 @@ public class BorrowReturnService {
         ticket.setStatus(TicketStatus.COMPLETED);
         ticket.setNote(ticket.getNote() + " | [Hệ thống]: Đã thu hồi đủ đồ bổ sung.");
 
-        // Đã xóa logic cộng lại tồn kho material
 
         sendHtmlEmail(ticket, "RETURN", true);
         return ticketRepository.save(ticket);
@@ -190,6 +187,15 @@ public class BorrowReturnService {
             ticket.setNote(request.getNote());
         if (request.getStatus() != null)
             ticket.setStatus(request.getStatus());
+
+        switch (request.getStatus()) {
+            case COMPLETED:
+                sendHtmlEmail(ticket, "RETURN", true);
+                break;
+            case INCOMPLETE:
+                sendHtmlEmail(ticket, "RETURN", false);
+                break;
+        }
 
         return ticketRepository.save(ticket);
     }

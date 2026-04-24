@@ -25,4 +25,7 @@ public interface ProjectorMaintenanceRepository extends JpaRepository<ProjectorM
             "LOWER(t.technician) LIKE LOWER(CONCAT('%', :kw, '%'))")
     Page<ProjectorMaintenanceDetail> searchHistory(@Param("kw") String kw, Pageable pageable);
 
+    void deleteByProjectorId(Long id);
+
+    void deleteByTicketId(Long id);
 }

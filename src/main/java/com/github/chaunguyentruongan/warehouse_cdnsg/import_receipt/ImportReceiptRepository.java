@@ -23,7 +23,7 @@ public interface ImportReceiptRepository extends JpaRepository<ImportReceipt, Lo
 
        // Truy vấn kết hợp Lọc theo ngày, Tìm kiếm theo Note và Phân trang
        @Query("SELECT i FROM ImportReceipt i WHERE " +
-                     "i.status <> com.github.chaunguyentruongan.warehouse_cdnsg.enums.ReceiptStatus.CANCELLED AND " +
+                     "i.status <> com.github.chaunguyentruongan.warehouse_cdnsg.enums.ReceiptStatus.CANCELLED AND " +   
                      "(:fromDate IS NULL OR i.importDate >= :fromDate) AND " +
                      "(:toDate IS NULL OR i.importDate <= :toDate) AND " +
                      "(:keyword IS NULL OR :keyword = '' OR " +

@@ -39,7 +39,7 @@ app:
   cors:
     origin: ${APP_CORS_ORIGIN:http://localhost:5173}
   extinguisher:
-    warning-days: 10
+    warning-days: 15
 
 cloudinary:
   cloud_name: ${CLOUDINARY_NAME}

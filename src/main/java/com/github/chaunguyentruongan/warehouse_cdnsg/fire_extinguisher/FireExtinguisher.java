@@ -2,6 +2,8 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.fire_extinguisher;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.text.Normalizer;
 import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -46,6 +48,13 @@ public class FireExtinguisher {
     // Trạng thái để nhắc nhở (VD: OK, WARNING, EXPIRED)
     @Enumerated(EnumType.STRING)
     private MaintenanceStatus status;
+
+    public static String normalize(String str) {
+        if (str == null)
+            return null;
+        String temp = Normalizer.normalize(str, Normalizer.Form.NFD);
+        return temp.replaceAll("\\p{M}", "").toLowerCase();
+    }
 }
 
 enum MaintenanceStatus {

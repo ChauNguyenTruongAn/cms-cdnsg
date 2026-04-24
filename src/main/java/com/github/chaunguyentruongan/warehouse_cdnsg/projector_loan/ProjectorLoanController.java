@@ -64,9 +64,17 @@ public class ProjectorLoanController {
         return ResponseEntity.ok(loanService.getHistoryByProjectorId(projectorId));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProjectorById(@PathVariable Long id){
-        loanService.delete(id);
-        return (ResponseEntity<?>) ResponseEntity.noContent();
+    @Operation(summary = "Xóa lịch sử mượn của 1 máy chiếu cụ thể")
+    @DeleteMapping("/{projectorId}")
+    public ResponseEntity<Void> deleteHistoryByProjector(@PathVariable Long projectorId) {
+        loanService.deleteByProjectorId(projectorId);
+        return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Báo cáo thống kê thời gian sử dụng", description = "Tính tổng thời gian (giây) máy đã được mượn dựa trên các phiếu đã hoàn tất")
+    @GetMapping("/statistics/usage")
+    public ResponseEntity<List<ProjectorUsageDTO>> getUsageReport() {
+        return ResponseEntity.ok(loanService.getProjectorUsageReport());
+    }
+
 }

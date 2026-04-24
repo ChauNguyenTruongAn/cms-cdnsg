@@ -67,11 +67,12 @@ public class FireExtinguisherController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long zoneId,
             @RequestParam(required = false) String type,
+            @RequestParam(required = false) MaintenanceStatus status,
             @RequestParam(required = false) String weight) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("nextRechargeDate").ascending());
 
-        return ResponseEntity.ok(service.getAll(keyword, zoneId, type, weight, pageable));
+        return ResponseEntity.ok(service.getAll(keyword, zoneId, type, weight,status, pageable));
     }
 
     @Operation(summary = "Thêm mới bình chữa cháy")

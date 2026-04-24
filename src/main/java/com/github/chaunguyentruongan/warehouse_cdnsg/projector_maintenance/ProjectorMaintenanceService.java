@@ -182,4 +182,15 @@ public class ProjectorMaintenanceService {
 
         return ticketRepository.save(ticket);
     }
+
+    @Transactional
+    public void deleteByProjectorId(Long id) {
+        projectorMaintenanceRepository.deleteByProjectorId(id);
+    }
+
+    @Transactional
+    public void deleteTicket(Long id) {
+        projectorMaintenanceRepository.deleteByProjectorId(id);
+        ticketRepository.deleteById(id);
+    }
 }

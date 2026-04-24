@@ -17,8 +17,17 @@ public interface ProjectorLoanRepository extends JpaRepository<ProjectorLoan, Lo
 
     // Thêm câu query hỗ trợ lọc theo trạng thái phiếu mượn và tên người mượn
     @Query("SELECT l FROM ProjectorLoan l WHERE " +
-           "(:status IS NULL OR l.status = :status) AND " +
-           "(:kw IS NULL OR LOWER(l.borrower) LIKE LOWER(CONCAT('%', :kw, '%')))")
+            "(:status IS NULL OR l.status = :status) AND " +
+            "(:kw IS NULL OR LOWER(l.borrower) LIKE LOWER(CONCAT('%', :kw, '%')))")
     Page<ProjectorLoan> searchWithFilter(@Param("kw") String kw, @Param("status") LoanStatus status, Pageable pageable);
+
+    // Thêm vào ProjectorLoanRepository.java
+    @Query(value = "SELECT p.id as projectorId, p.name as projectorName, p.serial_number as serialNumber, " +
+            "SUM(TIMESTAMPDIFF(SECOND, l.borrow_date, l.return_date)) as totalUsageSeconds " +
+            "FROM projector p " +
+            "JOIN projector_loan l ON p.id = l.projector_id " +
+            "WHERE l.status = 'RETURNED' " +
+            "GROUP BY p.id, p.name, p.serial_number", nativeQuery = true)
+    List<Object[]> getUsageStatsNative();
 
 }

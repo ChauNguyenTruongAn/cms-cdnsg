@@ -17,11 +17,15 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")
-                        .allowedOrigins(allowedOrigins)
-                        .allowedHeaders("*")
-                        .allowedMethods("*");
-            }
-        };
+             registry.addMapping("/**")
+                .allowedOriginPatterns(
+                    "https://*.vercel.app",
+                    "http://localhost:5173"
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+                    }
+                };
     }
 }

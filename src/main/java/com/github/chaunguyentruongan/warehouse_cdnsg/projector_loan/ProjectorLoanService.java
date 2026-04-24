@@ -10,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +42,7 @@ public class ProjectorLoanService {
             ProjectorLoan loan = ProjectorLoan.builder()
                     .projector(projector)
                     .borrower(request.getBorrower())
-                    .borrowDate(request.getBorrowDate() != null ? request.getBorrowDate() : LocalDate.now())
+                    .borrowDate(request.getBorrowDate() != null ? request.getBorrowDate() : LocalDateTime.now())
                     .status(LoanStatus.BORROWING)
                     .note(request.getNote())
                     .build();
@@ -63,7 +63,7 @@ public class ProjectorLoanService {
         }
 
         loan.setStatus(LoanStatus.RETURNED);
-        loan.setReturnDate(LocalDate.now());
+        loan.setReturnDate(LocalDateTime.now());
         loan.setNote(loan.getNote() + " | Ghi chú khi trả: " + (returnNote != null ? returnNote : ""));
 
         Projector projector = loan.getProjector();
@@ -85,10 +85,11 @@ public class ProjectorLoanService {
         ProjectorLoan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu mượn!"));
 
-        // Chỉ cho phép sửa khi phiếu đang ở trạng thái mượn
-        if (loan.getStatus() == LoanStatus.RETURNED) {
-            throw new IllegalArgumentException("Không thể sửa phiếu đã hoàn tất trả máy!");
-        }
+        // // Chỉ cho phép sửa khi phiếu đang ở trạng thái mượn
+        // if (loan.getStatus() == LoanStatus.RETURNED) {
+        // throw new IllegalArgumentException("Không thể sửa phiếu đã hoàn tất trả
+        // máy!");
+        // }
 
         loan.setBorrower(request.getBorrower());
         if (request.getBorrowDate() != null) {
@@ -115,7 +116,24 @@ public class ProjectorLoanService {
         return loanRepository.findByProjectorIdOrderByBorrowDateDesc(projectorId);
     }
 
-    public void delete(Long id) {
-        loanRepository.deleteById(id);
+    @Transactional
+    public void deleteByProjectorId(Long projectorId) {
+        List<ProjectorLoan> loans = loanRepository.findByProjectorIdOrderByBorrowDateDesc(projectorId);
+        loanRepository.deleteAll(loans);
+    }
+
+    public List<ProjectorUsageDTO> getProjectorUsageReport() {
+        List<Object[]> results = loanRepository.getUsageStatsNative();
+        List<ProjectorUsageDTO> dtos = new ArrayList<>();
+
+        for (Object[] row : results) {
+            dtos.add(new ProjectorUsageDTO(
+                    ((Number) row[0]).longValue(), // id
+                    (String) row[1], // name
+                    (String) row[2], // serialNumber
+                    row[3] != null ? ((Number) row[3]).longValue() : 0L // totalSeconds
+            ));
+        }
+        return dtos;
     }
 }

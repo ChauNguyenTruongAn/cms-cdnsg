@@ -2,6 +2,9 @@ package com.github.chaunguyentruongan.warehouse_cdnsg.projector_core;
 
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.SqlDuplicateException;
+import com.github.chaunguyentruongan.warehouse_cdnsg.projector_loan.ProjectorLoanService;
+import com.github.chaunguyentruongan.warehouse_cdnsg.projector_maintenance.ProjectorMaintenanceService;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -15,6 +18,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectorService {
     private final ProjectorRepository projectorRepository;
+    private final ProjectorLoanService projectorLoanService;
+    private final ProjectorMaintenanceService projectorMaintenanceService;
 
     public Projector findById(Long id) {
         return projectorRepository.findById(id)
@@ -63,11 +68,14 @@ public class ProjectorService {
     }
 
     // 3. XÓA MÁY CHIẾU
+    @Transactional
     public void delete(Long id) {
         // Lưu ý: Nếu máy chiếu đã có lịch sử mượn/bảo trì, việc xóa cứng có thể gây lỗi
         // Foreign Key.
         // Bạn có thể cân nhắc thêm 1 trạng thái DELETED vào ProjectorStatus hoặc bắt
         // exception ở đây.
+        projectorLoanService.deleteByProjectorId(id);
+        projectorMaintenanceService.deleteByProjectorId(id);
         projectorRepository.deleteById(id);
     }
 

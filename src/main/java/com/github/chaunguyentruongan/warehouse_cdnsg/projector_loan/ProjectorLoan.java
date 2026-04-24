@@ -5,7 +5,7 @@ import com.github.chaunguyentruongan.warehouse_cdnsg.projector_core.Projector;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Table(name = "projector_loan")
 @Entity
@@ -31,11 +31,11 @@ public class ProjectorLoan {
     private String borrower;
 
     @Column(nullable = false)
-    private LocalDate borrowDate;
+    private LocalDateTime borrowDate;
 
     // Ngày trả: Sẽ bị null khi trạng thái đang là BORROWING, được update khi người
     // dùng đem trả
-    private LocalDate returnDate;
+    private LocalDateTime returnDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
