@@ -35,6 +35,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(responseExceptionDTO.getHttpStatus()).body(responseExceptionDTO);
     }
 
+    @ExceptionHandler(exception = ResourceExistsException.class)
+    public ResponseEntity<ResponseExceptionDTO> handleResourceExistsException(SqlDuplicateException ex,
+            HttpServletRequest request) {
+        ResponseExceptionDTO responseExceptionDTO = new ResponseExceptionDTO();
+        responseExceptionDTO.setHttpStatus(409);
+        responseExceptionDTO.setError(ex.getMessage());
+        responseExceptionDTO.setTime(LocalDate.now());
+        responseExceptionDTO.setPath(request.getPathInfo());
+
+        return ResponseEntity.status(responseExceptionDTO.getHttpStatus()).body(responseExceptionDTO);
+    }
+
     @ExceptionHandler(exception = RuntimeException.class)
     public ResponseEntity<ResponseExceptionDTO> handleGlobalException(RuntimeException ex,
             HttpServletRequest request) {

@@ -1,10 +1,16 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.auth;
 
 import java.util.Date;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.github.chaunguyentruongan.warehouse_cdnsg.auth.dto.LoginRequest;
+import com.github.chaunguyentruongan.warehouse_cdnsg.auth.dto.LoginResponse;
+import com.github.chaunguyentruongan.warehouse_cdnsg.modules.user.User;
+import com.github.chaunguyentruongan.warehouse_cdnsg.modules.user.UserService;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -15,30 +21,50 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 
     @Value("${app.secret-key}")
     private String secretKey;
 
-    public String generateToken(String username) throws JOSEException {
-        JWSSigner singer = new MACSigner(secretKey.getBytes());
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
-        // tìm kiếm user và lấy role
+    public LoginResponse login(LoginRequest request) throws JOSEException {
+        User user = userService.findByEmailOrUsername(request.getRequest());
+        if (user == null) {
+            return null;
+        }
+
+        String dbPassword = user.getPassword();
+
+        if (!passwordEncoder.matches(request.getPassword(), dbPassword)) {
+            return new LoginResponse();
+        }
+
+        JWSSigner signer = new MACSigner(secretKey.getBytes());
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(username)
+                .subject(user.getEmail())
                 .issuer("cdnsg-qlk")
                 .expirationTime(new Date(System.currentTimeMillis() + 5 * 60 * 1000))
-                .claim("role", "USER") // để tạm user, lấy role từ USER nhé
+                .claim("role", "USER")
+                .claim("permission", List.of(user.getPermissions().stream().map(p -> p.getName())))
                 .build();
 
         SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
 
-        signedJWT.sign(singer);
+        signedJWT.sign(signer);
 
-        return signedJWT.serialize();
+        String token = signedJWT.serialize();
+
+        LoginResponse response = new LoginResponse();
+        response.setToken(token);
+
+        return response;
 
     }
 
