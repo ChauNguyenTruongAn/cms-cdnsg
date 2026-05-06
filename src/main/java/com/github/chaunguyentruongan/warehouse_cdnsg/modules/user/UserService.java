@@ -1,10 +1,15 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.modules.user;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +18,7 @@ import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundE
 import com.github.chaunguyentruongan.warehouse_cdnsg.modules.user.dto.UserCreateDTO;
 import com.github.chaunguyentruongan.warehouse_cdnsg.modules.user.dto.UserUpdatedDTO;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -24,8 +30,13 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public User findByEmail(String email) {
-        return userRepository.findByEmail(email)
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("not found user by email: " + email));
+
+        user.setPassword("");
+
+        return user;
     }
 
     public User findBySchoolID(String schoolID) {
@@ -34,22 +45,31 @@ public class UserService {
     }
 
     public User createUser(UserCreateDTO request) {
+        // 1. Kiểm tra Email
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new ResourceExistsException("Email này đã được sử dụng!");
+        }
 
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        // 2. Kiểm tra Username
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new ResourceExistsException("Tên đăng nhập (Username) này đã tồn tại!");
+        }
 
-        if (user != null) {
-            throw new ResourceExistsException("user was existed");
+        // (Tùy chọn) 3. Kiểm tra Mã NV / Mã Trường
+        if (userRepository.findBySchoolID(request.getSchoolID()).isPresent()) {
+            throw new ResourceExistsException("Mã nhân viên/trường này đã tồn tại!");
         }
 
         Role role = roleRepo.findById(request.getRoleID()).orElse(null);
 
-        if (role != null) {
+        if (role == null) {
             throw new ResourceNotFoundException("not found role by id: " + request.getRoleID());
         }
 
         Set<Permission> permissions = getPermissionFromRequest(request.getPermissionIDs());
 
-        user = User.builder().fullName(request.getFullName())
+        User user = User.builder()
+                .fullName(request.getFullName())
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
@@ -63,6 +83,9 @@ public class UserService {
     }
 
     private Set<Permission> getPermissionFromRequest(List<Long> permissions) {
+        if (permissions == null || permissions.isEmpty()) {
+            return Collections.emptySet();
+        }
 
         return permissions.stream()
                 .map(permissionID -> permissionRepo.findById(permissionID).orElse(null))
@@ -103,12 +126,19 @@ public class UserService {
 
         Role role = roleRepo.findById(request.getRoleID()).orElse(null);
 
+        if (role == null) {
+            throw new ResourceNotFoundException("not found role by id: " + request.getRoleID());
+        }
+
         user.setEmail(request.getEmail());
         user.setSchoolID(request.getSchoolID());
         user.setFullName(request.getFullName());
         user.setRole(role);
         user.setPermissions(getPermissionFromRequest(request.getPermissionIDs()));
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
 
         return userRepository.save(user);
     }
@@ -118,6 +148,7 @@ public class UserService {
                 () -> new ResourceNotFoundException("not found user by email: " + email));
 
         user.setActive(false);
+        userRepository.save(user);
 
         return true;
     }
@@ -127,21 +158,32 @@ public class UserService {
                 () -> new ResourceNotFoundException("not found user by email: " + email));
 
         user.setActive(true);
+        userRepository.save(user);
 
         return true;
     }
 
+    @Transactional
     public void deleteUser(String email) {
         userRepository.deleteByEmail(email);
     }
 
     public User findByEmailOrUsername(String request) {
-        User user = userRepository.findByUsername(request).orElse(null);
+        return userRepository.findByUsername(request)
+                .or(() -> userRepository.findByEmail(request))
+                .orElseThrow(() -> new ResourceNotFoundException("not found user by email or username: " + request));
+    }
 
-        if (user == null) {
-            user = userRepository.findByEmail(request).orElse(null);
-        }
+    public Page<User> getAllUsers(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return userRepository.searchUsers(keyword, pageable);
+    }
 
-        return user;
+    public List<Role> getAllRoles() {
+        return roleRepo.findAll();
+    }
+
+    public List<Permission> getAllPermissions() {
+        return permissionRepo.findAll();
     }
 }

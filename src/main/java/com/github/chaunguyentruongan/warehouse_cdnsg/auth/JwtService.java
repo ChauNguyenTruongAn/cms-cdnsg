@@ -1,5 +1,6 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.auth;
 
+import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.github.chaunguyentruongan.warehouse_cdnsg.auth.dto.LoginRequest;
 import com.github.chaunguyentruongan.warehouse_cdnsg.auth.dto.LoginResponse;
+import com.github.chaunguyentruongan.warehouse_cdnsg.exception.TokenException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.modules.user.User;
 import com.github.chaunguyentruongan.warehouse_cdnsg.modules.user.UserService;
 import com.nimbusds.jose.JOSEException;
@@ -30,6 +32,9 @@ public class JwtService {
     @Value("${app.secret-key}")
     private String secretKey;
 
+    @Value("${app.expire}")
+    private int expiredTime;
+
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
 
@@ -45,40 +50,75 @@ public class JwtService {
             return new LoginResponse();
         }
 
+        return genToken(user);
+
+    }
+
+    private LoginResponse genToken(User user) throws JOSEException {
         JWSSigner signer = new MACSigner(secretKey.getBytes());
 
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+        JWTClaimsSet accessTokenClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getEmail())
                 .issuer("cdnsg-qlk")
-                .expirationTime(new Date(System.currentTimeMillis() + 5 * 60 * 1000))
+                .expirationTime(new Date(System.currentTimeMillis() + expiredTime * 1000))
                 .claim("role", "USER")
                 .claim("permission", List.of(user.getPermissions().stream().map(p -> p.getName())))
                 .build();
 
-        SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
+        JWTClaimsSet refreshTokenClaimsSet = new JWTClaimsSet.Builder()
+                .subject(user.getEmail())
+                .issuer("cdnsg-qlk")
+                .expirationTime(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000))
+                .build();
 
-        signedJWT.sign(signer);
+        SignedJWT accessToken = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), accessTokenClaimsSet);
+        SignedJWT refreshToken = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), refreshTokenClaimsSet);
 
-        String token = signedJWT.serialize();
+        accessToken.sign(signer);
+        refreshToken.sign(signer);
+
+        String accessTokenString = accessToken.serialize();
+        String refreshTokenString = refreshToken.serialize();
 
         LoginResponse response = new LoginResponse();
-        response.setToken(token);
+        response.setToken(accessTokenString);
+        response.setRefreshToken(refreshTokenString);
 
         return response;
-
     }
 
-    public JWTClaimsSet validateToken(String token) throws Exception {
+    public LoginResponse refresh(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
 
         JWSVerifier verifier = new MACVerifier(secretKey.getBytes());
 
         if (!signedJWT.verify(verifier)) {
-            throw new RuntimeException("Invalid signature");
+            throw new TokenException("Invalid signature");
         }
 
         if (signedJWT.getJWTClaimsSet().getExpirationTime().before(new Date())) {
-            throw new RuntimeException("Token expired");
+            throw new TokenException("Token expired");
+        }
+
+        var claimsSet = signedJWT.getJWTClaimsSet();
+        String email = claimsSet.getSubject();
+
+        User user = userService.findByEmail(email);
+
+        return genToken(user);
+    }
+
+    public JWTClaimsSet validateToken(String token) throws TokenException, ParseException, JOSEException {
+        SignedJWT signedJWT = SignedJWT.parse(token);
+
+        JWSVerifier verifier = new MACVerifier(secretKey.getBytes());
+
+        if (!signedJWT.verify(verifier)) {
+            throw new TokenException("Invalid signature");
+        }
+
+        if (signedJWT.getJWTClaimsSet().getExpirationTime().before(new Date())) {
+            throw new TokenException("Token expired");
         }
 
         return signedJWT.getJWTClaimsSet();

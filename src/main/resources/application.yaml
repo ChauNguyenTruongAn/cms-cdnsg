@@ -41,8 +41,19 @@ app:
   extinguisher:
     warning-days: 15
   secret-key: ${APP_SECRET_KEY}
+  admin:
+    email: ${APP_ADMIN_EMAIL:admin@warehouse-cdnsg.local}
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:admin123}
+    full-name: ${APP_ADMIN_FULLNAME:System Administrator}
+    school-id: ${APP_ADMIN_SCHOOL_ID:ADMIN}
+  expire: ${APP_EXPRIE_SECONDS}
 
 cloudinary:
   cloud_name: ${CLOUDINARY_NAME}
   api_key: ${CLOUDINARY_KEY}
   api_secret: ${CLOUDINARY_SECRET}
+
+springdoc:
+  swagger-ui:
+    with-credentials: true

@@ -17,7 +17,7 @@ public class OpenAPIConfig {
                         .version("1.0.0")
                         .description("Tài liệu API cho chức năng quản lý Nhập/Xuất kho, Vật tư.")
                         .contact(new Contact()
-                                .name("Châu Nguyễn Trường An")
-                                .email("your.email@example.com")));
+                                .name("Admin")
+                                .email("admin@admin.com")));
     }
 }

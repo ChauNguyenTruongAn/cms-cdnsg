@@ -17,12 +17,13 @@ public interface ExportReceiptRepository extends JpaRepository<ExportReceipt, Lo
         void deleteItemsByMaterialId(@Param("materialId") Long materialId);
 
         @Query("SELECT e FROM ExportReceipt e WHERE " +
+                        "e.status = ReceiptStatus.COMPLETED AND " +
                         "(:fromDate IS NULL OR e.exportDate >= :fromDate) AND " +
                         "(:toDate IS NULL OR e.exportDate <= :toDate) AND " +
                         "(:keyword IS NULL OR :keyword = '' OR " +
-                        "LOWER(e.note) LIKE LOWER(CONCAT('%', :keyword, '%')) AND " +
+                        "(LOWER(e.note) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
                         "LOWER(e.department) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-                        "LOWER(e.receiptCode) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+                        "LOWER(e.receiptCode) LIKE LOWER(CONCAT('%', :keyword, '%'))))")
         Page<ExportReceipt> searchAndFilter(
                         @Param("fromDate") LocalDate fromDate,
                         @Param("toDate") LocalDate toDate,
