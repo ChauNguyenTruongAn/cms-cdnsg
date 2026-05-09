@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class ConfirmReturnDTO {
     private String returnCode;
-    @JsonProperty("isEnough")
-    private boolean isEnough; // true: Đủ đồ, false: Không đủ
-    private String note; // Bắt buộc nếu isEnough = false
+    private Long ticketId; // Dùng cho trả thủ công nếu không có mã QR
+    private java.util.List<ItemReturnRequest> items; // Ghi chú từng món
+    private String generalNote; // Ghi chú chung
 }

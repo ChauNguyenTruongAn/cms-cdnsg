@@ -32,6 +32,8 @@ public class AuthController {
                 .path("/")
                 .maxAge(60 * 60 * 24 * 7)
                 .sameSite("Lax")
+                // .sameSite("None")
+                // .secure(true)
                 .build();
 
         Map<String, String> token = new HashMap<>();
@@ -71,7 +73,7 @@ public class AuthController {
         return ResponseEntity
                 .ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(token);
+                .body(accessToken);
     }
 
     @PostMapping("/logout")

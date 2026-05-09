@@ -47,7 +47,7 @@ app:
     password: ${APP_ADMIN_PASSWORD:admin123}
     full-name: ${APP_ADMIN_FULLNAME:System Administrator}
     school-id: ${APP_ADMIN_SCHOOL_ID:ADMIN}
-  expire: ${APP_EXPRIE_SECONDS}
+  expire: ${APP_EXPIRE_SECONDS:10}
 
 cloudinary:
   cloud_name: ${CLOUDINARY_NAME}

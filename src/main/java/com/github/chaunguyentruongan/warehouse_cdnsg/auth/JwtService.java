@@ -33,7 +33,7 @@ public class JwtService {
     private String secretKey;
 
     @Value("${app.expire}")
-    private int expiredTime;
+    private String expiredTime;
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -56,12 +56,11 @@ public class JwtService {
 
     private LoginResponse genToken(User user) throws JOSEException {
         JWSSigner signer = new MACSigner(secretKey.getBytes());
-
         JWTClaimsSet accessTokenClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getEmail())
                 .issuer("cdnsg-qlk")
-                .expirationTime(new Date(System.currentTimeMillis() + expiredTime * 1000))
-                .claim("role", "USER")
+                .expirationTime(new Date(System.currentTimeMillis() + Long.parseLong(expiredTime) * 1000))
+                .claim("role", user.getRole().getName().toUpperCase())
                 .claim("permission", List.of(user.getPermissions().stream().map(p -> p.getName())))
                 .build();
 

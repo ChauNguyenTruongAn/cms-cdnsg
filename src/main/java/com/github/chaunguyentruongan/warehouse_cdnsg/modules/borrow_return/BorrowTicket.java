@@ -37,8 +37,9 @@ public class BorrowTicket {
     private TicketStatus status;
 
     private LocalDateTime createdAt;
-    private LocalDateTime borrowTime;
-    private LocalDateTime returnTime;
+    private LocalDateTime borrowTime; // Thời gian admin duyệt mượn thực tế
+    private LocalDateTime returnTime; // Thời gian trả đồ thực tế
+    private java.time.LocalDate expectedReturnDate; // Thời gian dự kiến trả (do user chọn)
 
     @Column(columnDefinition = "TEXT")
     private String note;

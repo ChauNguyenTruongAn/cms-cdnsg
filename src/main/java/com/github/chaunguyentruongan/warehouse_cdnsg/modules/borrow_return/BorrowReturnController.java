@@ -21,7 +21,7 @@ public class BorrowReturnController {
 
     private final BorrowReturnService service;
 
-    @Operation(summary = "1. Tạo phiếu mượn vật tư", description = "Thủ kho tạo phiếu mượn mới độc lập không phụ thuộc vật tư có sẵn. API trả về thông tin phiếu kèm mã borrowCode để Frontend vẽ mã QR.")
+    @Operation(summary = "1. Tạo phiếu mượn vật tư", description = "Người dùng tạo phiếu mượn mới. Trạng thái mặc định là PENDING và gửi email thông báo.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Tạo phiếu thành công")
     })
@@ -30,62 +30,75 @@ public class BorrowReturnController {
         return ResponseEntity.ok(service.createTicket(request));
     }
 
-    @Operation(summary = "2. Người dùng xác nhận mượn", description = "Được gọi khi người dùng quét mã QR mượn, nhập email và bấm xác nhận. Hệ thống sẽ đổi trạng thái thành BORROWED và sinh ra returnCode gửi qua email.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Xác nhận mượn thành công"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy mã phiếu mượn")
-    })
-    @PostMapping("/confirm-borrow")
-    public ResponseEntity<BorrowTicket> confirmBorrow(@RequestBody ConfirmBorrowDTO request) {
-        return ResponseEntity.ok(service.confirmBorrow(request));
+    @Operation(summary = "2. Admin duyệt đơn", description = "Admin duyệt phiếu mượn, trừ tồn kho và chuyển trạng thái sang BORROWED. Gửi email kèm mã QR cho người mượn.")
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<BorrowTicket> approveTicket(@PathVariable Long id) {
+        return ResponseEntity.ok(service.approveTicket(id));
     }
 
-    @Operation(summary = "3. Lấy thông tin phiếu trả qua mã QR", description = "Được gọi khi thủ kho quét mã QR trả đồ. API trả về chi tiết phiếu để hiển thị lên màn hình kiểm tra trước khi xác nhận.")
+    @Operation(summary = "3. Admin từ chối đơn", description = "Admin từ chối phiếu mượn, kèm lý do và gửi email.")
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<BorrowTicket> rejectTicket(@PathVariable Long id, @RequestParam String reason) {
+        return ResponseEntity.ok(service.rejectTicket(id, reason));
+    }
+
+    @Operation(summary = "4. Lấy thông tin phiếu trả qua mã QR", description = "Được gọi khi thủ kho quét mã QR trả đồ. API trả về chi tiết phiếu để hiển thị lên màn hình kiểm tra trước khi xác nhận.")
     @Parameter(name = "returnCode", description = "Mã trả đồ (được gửi trong email của người mượn)", required = true)
     @GetMapping("/scan-return/{returnCode}")
     public ResponseEntity<BorrowTicket> getReturnTicketInfo(@PathVariable String returnCode) {
-        // Gọi service để lấy thông tin (Bạn cần thêm hàm getTicketByReturnCode vào
-        // BorrowReturnService)
         BorrowTicket ticket = service.getTicketByReturnCode(returnCode);
         return ResponseEntity.ok(ticket);
     }
 
-    @Operation(summary = "4. Thủ kho xác nhận trả đồ", description = "Thủ kho sau khi kiểm tra hiện trạng vật tư sẽ chọn Đủ đồ (isEnough=true) hoặc Thiếu đồ (isEnough=false, kèm ghi chú).")
+    @Operation(summary = "5. Thủ kho xác nhận trả đồ (QR)", description = "Thủ kho xác nhận qua mã QR code. Hỗ trợ ghi chú từng vật phẩm.")
     @PostMapping("/confirm-return")
     public ResponseEntity<BorrowTicket> confirmReturn(@RequestBody ConfirmReturnDTO request) {
         return ResponseEntity.ok(service.confirmReturn(request));
     }
 
-    @Operation(summary = "5. Admin xác nhận đã nhận đủ đồ bị thiếu", description = "Được gọi khi người dùng mang vật tư bị thiếu/hỏng đến trả bù. Hệ thống sẽ đổi từ INCOMPLETE sang COMPLETED và cộng lại tồn kho.")
+    @Operation(summary = "5.1. Thủ kho xác nhận trả đồ (Thủ công)", description = "Thủ kho xác nhận trả đồ không qua mã QR, sử dụng trực tiếp ID phiếu.")
+    @PostMapping("/{id}/return-manual")
+    public ResponseEntity<BorrowTicket> returnManual(@PathVariable Long id, @RequestBody ConfirmReturnDTO request) {
+        request.setTicketId(id);
+        return ResponseEntity.ok(service.confirmReturn(request));
+    }
+
+    @Operation(summary = "6. Admin xác nhận đã nhận đủ đồ bị thiếu", description = "Được gọi khi người dùng mang vật tư bị thiếu/hỏng đến trả bù. Hệ thống sẽ đổi từ INCOMPLETE sang RETURNED và hoàn lại tồn kho.")
     @PutMapping("/resolve-incomplete/{id}")
     public ResponseEntity<BorrowTicket> resolveIncompleteReturn(@PathVariable Long id) {
         return ResponseEntity.ok(service.resolveIncomplete(id));
     }
 
-    @Operation(summary = "6. Lấy danh sách phiếu mượn trả", description = "Lấy toàn bộ danh sách phiếu có phân trang và lọc.")
+    @Operation(summary = "7. Lấy danh sách phiếu mượn trả", description = "Lấy toàn bộ danh sách phiếu có phân trang và lọc.")
     @GetMapping("/all")
     public ResponseEntity<Page<BorrowTicket>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword, // THÊM DÒNG NÀY
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) TicketStatus status) {
 
-        // Truyền keyword vào service
         return ResponseEntity.ok(
                 service.findAll(keyword, status, PageRequest.of(page, size, Sort.by("createdAt").descending())));
     }
 
-    @Operation(summary = "7. Cập nhật thông tin phiếu", description = "Admin sửa thông tin (Tên, phòng ban, ghi chú, trạng thái).")
+    @Operation(summary = "8. Cập nhật thông tin phiếu", description = "Admin sửa thông tin (Tên, phòng ban, ghi chú, trạng thái).")
     @PutMapping("/{id}")
     public ResponseEntity<BorrowTicket> updateTicket(@PathVariable Long id,
             @RequestBody UpdateBorrowTicketDTO request) {
         return ResponseEntity.ok(service.updateTicket(id, request));
     }
 
-    @Operation(summary = "8. Xóa phiếu mượn", description = "Admin xóa mềm phiếu mượn.")
+    @Operation(summary = "9. Xóa phiếu mượn", description = "Admin xóa mềm phiếu mượn.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
-        service.deleteTicket(id); // Bạn thêm hàm deleteTicket vào Service dùng ticketRepository.deleteById(id);
+        service.deleteTicket(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "10. Gửi email thủ công", description = "Quản lý soạn nội dung gửi trực tiếp đến cá nhân hoặc nhóm người dùng.")
+    @PostMapping("/send-email")
+    public ResponseEntity<Void> sendManualEmail(@RequestBody ManualEmailRequest request) {
+        service.sendManualEmail(request);
         return ResponseEntity.ok().build();
     }
 }

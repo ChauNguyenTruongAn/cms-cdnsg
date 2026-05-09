@@ -36,3 +36,4 @@ build/
 .env.local
 
 todo.md
+*.feat.md

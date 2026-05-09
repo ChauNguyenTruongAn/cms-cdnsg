@@ -10,6 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BorrowTicketItem {
+    private Long itemId;
     private String itemName;
     private int quantity;
+    
+    private int returnedQuantity;
+    private int brokenQuantity;
+    private String conditionNote;
 }
