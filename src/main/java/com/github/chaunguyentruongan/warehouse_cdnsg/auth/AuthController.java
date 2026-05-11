@@ -31,9 +31,9 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from("refresh_token", resp.getRefreshToken())
                 .path("/")
                 .maxAge(60 * 60 * 24 * 7)
-                .sameSite("Lax")
-                // .sameSite("None")
-                // .secure(true)
+                // .sameSite("Lax")
+                .sameSite("None")
+                .secure(true)
                 .build();
 
         Map<String, String> token = new HashMap<>();
@@ -64,7 +64,9 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from("refresh_token", resp.getRefreshToken())
                 .path("/")
                 .maxAge(60 * 60 * 24 * 7)
-                .sameSite("Lax")
+                // .sameSite("Lax")
+                .sameSite("None")
+                .secure(true)
                 .build();
 
         Map<String, String> accessToken = new HashMap<>();
@@ -81,7 +83,9 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from("refresh_token", "")
                 .path("/")
                 .maxAge(0)
-                .sameSite("Lax")
+                // .sameSite("Lax")
+                .sameSite("None")
+                .secure(true)
                 .build();
 
         return ResponseEntity
