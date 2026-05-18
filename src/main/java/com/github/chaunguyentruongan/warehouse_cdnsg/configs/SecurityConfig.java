@@ -37,7 +37,14 @@ public class SecurityConfig {
                                 .requestMatchers("/api/auth/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("MANAGER", "USER", "ADMIN")
                                 .requestMatchers(HttpMethod.POST, "/api/users/**").hasAnyRole("MANAGER", "ADMIN")
-                                .requestMatchers("/api/borrow-items/**", "/api/borrow-return/**").hasAnyRole("USER", "ADMIN")
+                                .requestMatchers("/api/borrow-items/**", "/api/borrow-return/**")
+                                .hasAnyRole("USER", "MANAGER", "ADMIN")
+                                .requestMatchers(HttpMethod.GET, "/api/document-categories/**", "/api/media/**")
+                                .hasAnyRole("MANAGER", "ADMIN")
+                                // Inventory: GET cho mọi user đăng nhập, DELETE chỉ ADMIN
+                                .requestMatchers(HttpMethod.GET, "/api/inventory/**").hasAnyRole("USER", "MANAGER", "ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/inventory/**").hasRole("ADMIN")
+                                .requestMatchers("/api/inventory/**").hasAnyRole("MANAGER", "ADMIN")
                                 .anyRequest().hasRole("ADMIN"));
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
