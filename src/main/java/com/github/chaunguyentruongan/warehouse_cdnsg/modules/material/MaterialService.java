@@ -1,13 +1,18 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.modules.material;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.ResourceNotFoundException;
 import com.github.chaunguyentruongan.warehouse_cdnsg.exception.SqlDuplicateException;
+import com.github.chaunguyentruongan.warehouse_cdnsg.modules.import_receipt.ImportItemRepository;
 import com.github.chaunguyentruongan.warehouse_cdnsg.modules.import_receipt.ImportReceiptService;
+import com.github.chaunguyentruongan.warehouse_cdnsg.modules.export_receipt.ExportItemRepository;
 import com.github.chaunguyentruongan.warehouse_cdnsg.modules.export_receipt.ExportReceiptService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -20,12 +25,18 @@ public class MaterialService {
     private final ExportReceiptService exportReceiptService;
     private final UnitService unitService;
 
+    private final ImportItemRepository importItemRepository;
+    private final ExportItemRepository exportItemRepository;
+
     public MaterialService(MaterialRepository materialRepository, @Lazy ImportReceiptService importReceiptService,
-            @Lazy ExportReceiptService exportReceiptService, UnitService unitService) {
+            @Lazy ExportReceiptService exportReceiptService, UnitService unitService,
+            ImportItemRepository importItemRepository, ExportItemRepository exportItemRepository) {
         this.materialRepository = materialRepository;
         this.importReceiptService = importReceiptService;
         this.exportReceiptService = exportReceiptService;
         this.unitService = unitService;
+        this.importItemRepository = importItemRepository;
+        this.exportItemRepository = exportItemRepository;
     }
 
     public Material create(MaterialRequestCreate request) {
@@ -103,4 +114,17 @@ public class MaterialService {
         return stats;
     }
 
+    public List<TopMaterialDTO> getTop10MostUsedMaterials() {
+        return materialRepository.findTopExportedMaterials(PageRequest.of(0, 10));
+    }
+
+    public RecentActivitiesResponse getRecentActivities() {
+        // Lấy đúng 10 bản ghi đầu tiên
+        PageRequest topTen = PageRequest.of(0, 10);
+
+        List<RecentTransactionDTO> imports = importItemRepository.findRecentImports(topTen);
+        List<RecentTransactionDTO> exports = exportItemRepository.findRecentExports(topTen);
+
+        return new RecentActivitiesResponse(imports, exports);
+    }
 }

@@ -1,5 +1,7 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.modules.material;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -70,5 +72,17 @@ public class MaterialController {
     @GetMapping("/stats")
     public ResponseEntity<java.util.Map<String, Object>> getStats() {
         return ResponseEntity.ok(materialService.getMaterialStats());
+    }
+
+    @Operation(summary = "Lấy top 10 vật tư xuất nhiều nhất", description = "Trả về danh sách 10 vật tư có tổng số lượng xuất kho nhiều nhất (chỉ tính phiếu xuất COMPLETED)")
+    @GetMapping("/top-exported")
+    public ResponseEntity<List<TopMaterialDTO>> getTop10ExportedMaterials() {
+        return ResponseEntity.ok(materialService.getTop10MostUsedMaterials());
+    }
+
+    @Operation(summary = "Lấy thống kê giao dịch gần nhất", description = "Trả về danh sách 10 vật tư đã nhập và 10 vật tư đã xuất gần đây nhất")
+    @GetMapping("/recent-activities")
+    public ResponseEntity<RecentActivitiesResponse> getRecentActivities() {
+        return ResponseEntity.ok(materialService.getRecentActivities());
     }
 }
