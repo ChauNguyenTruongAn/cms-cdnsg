@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class ImportReceiptService {
     private final ImportReceiptRepository importReceiptRepository;
     private final MaterialService materialService;
+    private final ImportItemRepository importItemRepository;
 
     public List<ImportReceipt> findByImportDateBetween(LocalDate from, LocalDate to) {
         return importReceiptRepository.findByImportDateBetween(from, to);
@@ -142,5 +144,41 @@ public class ImportReceiptService {
     public void deleteByMaterialId(Long id) {
         // Xóa trực tiếp các dòng chi tiết trong phiếu nhập liên quan đến vật tư này
         importReceiptRepository.deleteItemsByMaterialId(id);
+    }
+
+
+    public List<DailyImportReportDTO> getDailyImportReport(
+            LocalDate fromDate, LocalDate toDate, String materialName, String note, Integer quantity) {
+
+        // 1. Gọi query lấy danh sách phẳng
+        List<ImportReportFlatDTO> flatData = importItemRepository.getImportReportData(
+                fromDate, toDate, materialName, note, quantity);
+
+        // 2. Nhóm dữ liệu theo ngày (Group By importDate)
+        Map<LocalDate, List<ImportReportFlatDTO>> groupedByDate = flatData.stream()
+                .collect(Collectors.groupingBy(ImportReportFlatDTO::getImportDate));
+
+        // 3. Map sang DTO chuẩn và sắp xếp ngày mới nhất lên đầu
+        return groupedByDate.entrySet().stream()
+                .sorted(Map.Entry.<LocalDate, List<ImportReportFlatDTO>>comparingByKey().reversed())
+                .map(entry -> {
+                    LocalDate date = entry.getKey();
+
+                    // Chuyển FlatDTO thành DetailDTO
+                    List<ImportReportDetailDTO> details = entry.getValue().stream()
+                            .map(flat -> new ImportReportDetailDTO(
+                                    flat.getReceiptCode(),
+                                    flat.getMaterialName(),
+                                    flat.getUnitName(),
+                                    flat.getQuantity(),
+                                    flat.getNote()))
+                            .collect(Collectors.toList());
+
+                    // Tính tổng số lượng của ngày hôm đó
+                    int totalQuantity = details.stream().mapToInt(ImportReportDetailDTO::getQuantity).sum();
+
+                    return new DailyImportReportDTO(date, totalQuantity, details);
+                })
+                .collect(Collectors.toList());
     }
 }

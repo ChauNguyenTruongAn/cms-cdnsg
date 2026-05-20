@@ -1,6 +1,7 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.modules.import_receipt;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -65,5 +66,19 @@ public class ImportReceiptController {
     public ResponseEntity<Void> deleteImport(@PathVariable Long id) {
         importReceiptService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/report")
+    public ResponseEntity<List<DailyImportReportDTO>> getImportReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) String materialName,
+            @RequestParam(required = false) String note,
+            @RequestParam(required = false) Integer quantity) {
+
+        List<DailyImportReportDTO> report = importReceiptService.getDailyImportReport(
+                fromDate, toDate, materialName, note, quantity);
+
+        return ResponseEntity.ok(report);
     }
 }

@@ -1,6 +1,7 @@
 package com.github.chaunguyentruongan.warehouse_cdnsg.modules.export_receipt;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -66,5 +67,21 @@ public class ExportReceiptController {
     public ResponseEntity<Void> deleteExport(@PathVariable Long id) {
         exportReceiptService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Lấy báo cáo xuất kho theo ngày", description = "Tìm kiếm và gom nhóm dữ liệu xuất kho theo ngày để làm báo cáo")
+    @GetMapping("/report")
+    public ResponseEntity<List<DailyExportReportDTO>> getExportReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) String materialName,
+            @RequestParam(required = false) String note,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) Integer quantity) {
+
+        List<DailyExportReportDTO> report = exportReceiptService.getDailyExportReport(
+                fromDate, toDate, materialName, note, department, quantity);
+
+        return ResponseEntity.ok(report);
     }
 }

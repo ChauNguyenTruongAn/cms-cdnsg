@@ -12,6 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -19,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class ExportReceiptService {
     private final ExportReceiptRepository exportReceiptRepository;
     private final MaterialService materialService;
+    private final ExportItemRepository exportItemRepository;
 
     public ExportReceipt findById(Long id) {
         return exportReceiptRepository.findById(id)
@@ -123,5 +128,41 @@ public class ExportReceiptService {
     @Transactional
     public void deleteByMaterialId(Long id) {
         exportReceiptRepository.deleteItemsByMaterialId(id);
+    }
+
+    public List<DailyExportReportDTO> getDailyExportReport(
+            LocalDate fromDate, LocalDate toDate, String materialName,
+            String note, String department, Integer quantity) {
+
+        // Lấy dữ liệu phẳng từ DB
+        List<ExportReportFlatDTO> flatData = exportItemRepository.getExportReportData(
+                fromDate, toDate, materialName, note, department, quantity);
+
+        // Gom nhóm theo exportDate
+        Map<LocalDate, List<ExportReportFlatDTO>> groupedByDate = flatData.stream()
+                .collect(Collectors.groupingBy(ExportReportFlatDTO::getExportDate));
+
+        // Map sang Object và tính tổng số lượng
+        return groupedByDate.entrySet().stream()
+                .sorted(Map.Entry.<LocalDate, List<ExportReportFlatDTO>>comparingByKey().reversed())
+                .map(entry -> {
+                    LocalDate date = entry.getKey();
+
+                    List<ExportReportDetailDTO> details = entry.getValue().stream()
+                            .map(flat -> new ExportReportDetailDTO(
+                                    flat.getReceiptCode(),
+                                    flat.getMaterialName(),
+                                    flat.getUnitName(),
+                                    flat.getQuantity(),
+                                    flat.getDepartment(),
+                                    flat.getRecipient(),
+                                    flat.getNote()))
+                            .collect(Collectors.toList());
+
+                    int totalQuantity = details.stream().mapToInt(ExportReportDetailDTO::getQuantity).sum();
+
+                    return new DailyExportReportDTO(date, totalQuantity, details);
+                })
+                .collect(Collectors.toList());
     }
 }
