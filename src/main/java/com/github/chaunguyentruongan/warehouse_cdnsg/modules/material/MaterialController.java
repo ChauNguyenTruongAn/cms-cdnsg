@@ -85,4 +85,11 @@ public class MaterialController {
     public ResponseEntity<RecentActivitiesResponse> getRecentActivities() {
         return ResponseEntity.ok(materialService.getRecentActivities());
     }
+
+    @Operation(summary = "Lấy lịch sử giao dịch của vật tư", description = "Trả về lịch sử nhập xuất của một vật tư cụ thể dựa trên ID")
+    @GetMapping("/{id}/history")
+    public ResponseEntity<MaterialDetailResponseDTO> getMaterialHistory(@PathVariable Long id) {
+        MaterialDetailResponseDTO response = materialService.getMaterialDetailsWithHistory(id);
+        return ResponseEntity.ok(response);
+    }
 }

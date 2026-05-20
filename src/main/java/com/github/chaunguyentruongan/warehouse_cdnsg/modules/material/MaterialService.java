@@ -127,4 +127,25 @@ public class MaterialService {
 
         return new RecentActivitiesResponse(imports, exports);
     }
+
+    public MaterialDetailResponseDTO getMaterialDetailsWithHistory(Long materialId) {
+        // 1. Lấy thông tin cơ bản của vật tư
+        Material material = materialRepository.findById(materialId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy vật tư hoặc vật tư đã bị xóa!"));
+
+        // 2. Lấy lịch sử nhập và xuất
+        List<RecentTransactionDTO> imports = importItemRepository.findImportHistoryByMaterialId(materialId);
+        List<RecentTransactionDTO> exports = exportItemRepository.findExportHistoryByMaterialId(materialId);
+
+        // 3. Map sang DTO
+        String unitName = material.getUnit() != null ? material.getUnit().getName() : null;
+
+        return new MaterialDetailResponseDTO(
+                material.getId(),
+                material.getName(),
+                unitName,
+                material.getInventory(),
+                imports,
+                exports);
+    }
 }
