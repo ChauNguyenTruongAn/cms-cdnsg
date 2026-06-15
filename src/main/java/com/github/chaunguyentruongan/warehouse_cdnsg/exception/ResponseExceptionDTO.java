@@ -16,5 +16,6 @@ public class ResponseExceptionDTO {
     private LocalDate time;
     private int httpStatus;
     private String error;
+    private String message;
     private String path;
 }

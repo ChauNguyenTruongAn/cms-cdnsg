@@ -46,11 +46,19 @@ public class ExportReceiptService {
         long countToday = exportReceiptRepository.countByExportDate(request.getExportDate());
 
         // LOGIC MỚI ÁP DỤNG MÃ TỰ NHẬP
-        if (request.getInvoiceCode() != null && !request.getInvoiceCode().trim().isEmpty()
-                && !request.getInvoiceCode().equalsIgnoreCase("")) {
-            exportReceipt.setReceiptCode(request.getInvoiceCode());
+        if (request.getInvoiceCode() != null && !request.getInvoiceCode().trim().isEmpty()) {
+            String customCode = request.getInvoiceCode().trim();
+            if (exportReceiptRepository.existsByReceiptCode(customCode)) {
+                throw new IllegalArgumentException("Mã hóa đơn '" + customCode + "' đã tồn tại!");
+            }
+            exportReceipt.setReceiptCode(customCode);
         } else {
-            String receiptCode = String.format("PX-%s-%03d", dateStr, countToday + 1);
+            String receiptCode;
+            int offset = 1;
+            do {
+                receiptCode = String.format("PX-%s-%03d", dateStr, countToday + offset);
+                offset++;
+            } while (exportReceiptRepository.existsByReceiptCode(receiptCode));
             exportReceipt.setReceiptCode(receiptCode);
         }
 
@@ -74,12 +82,16 @@ public class ExportReceiptService {
     public ExportReceipt update(Long id, ExportReceiptRequest request) {
         ExportReceipt existing = findById(id);
 
-        if (existing.getStatus() == ReceiptStatus.CANCELLED) {
-            throw new RuntimeException("Phiếu xuất này đã bị hủy từ trước!");
-        }
-
-        for (ExportItem item : existing.getExportItems()) {
-            materialService.updateStock(item.getMaterial().getId(), item.getQuantity());
+        // BƯỚC 1: HOÀN TÁC TRẠNG THÁI CŨ
+        // Cộng lại số lượng tồn kho của các item CŨ đã từng được trừ đi trước đó
+        // (Chỉ thực hiện nếu phiếu chưa bị hủy. Nếu đã hủy, kho đã được hoàn tác từ trước)
+        if (existing.getStatus() != ReceiptStatus.CANCELLED) {
+            for (ExportItem item : existing.getExportItems()) {
+                materialService.updateStock(item.getMaterial().getId(), item.getQuantity());
+            }
+        } else {
+            // Nếu đã hủy, khi chỉnh sửa/lưu lại sẽ chuyển trạng thái về COMPLETED
+            existing.setStatus(ReceiptStatus.COMPLETED);
         }
 
         existing.getExportItems().clear();
@@ -91,7 +103,13 @@ public class ExportReceiptService {
 
         // CẬP NHẬT LẠI MÃ NẾU NGƯỜI DÙNG SỬA
         if (request.getInvoiceCode() != null && !request.getInvoiceCode().trim().isEmpty()) {
-            existing.setReceiptCode(request.getInvoiceCode());
+            String newCode = request.getInvoiceCode().trim();
+            if (!newCode.equalsIgnoreCase(existing.getReceiptCode())) {
+                if (exportReceiptRepository.existsByReceiptCode(newCode)) {
+                    throw new IllegalArgumentException("Mã hóa đơn '" + newCode + "' đã tồn tại!");
+                }
+                existing.setReceiptCode(newCode);
+            }
         }
 
         for (ExportItemRequest itemReq : request.getExportItemRequests()) {

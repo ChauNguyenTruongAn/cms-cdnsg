@@ -12,6 +12,8 @@ public interface ExportReceiptRepository extends JpaRepository<ExportReceipt, Lo
 
         long countByExportDate(LocalDate exportDate);
 
+        boolean existsByReceiptCode(String receiptCode);
+
         @Modifying
         @Query("DELETE FROM ExportItem i WHERE i.material.id = :materialId")
         void deleteItemsByMaterialId(@Param("materialId") Long materialId);

@@ -44,11 +44,20 @@ public class ImportReceiptService {
 
         long countToday = importReceiptRepository.countByImportDate(request.getImportDate());
         String dateStr = request.getImportDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        if (request.getInvoiceCode().equalsIgnoreCase("")) {
-            String receiptCode = String.format("PN-%s-%03d", dateStr, countToday + 1);
+        if (request.getInvoiceCode() == null || request.getInvoiceCode().trim().isEmpty()) {
+            String receiptCode;
+            int offset = 1;
+            do {
+                receiptCode = String.format("PN-%s-%03d", dateStr, countToday + offset);
+                offset++;
+            } while (importReceiptRepository.existsByReceiptCode(receiptCode));
             importReceipt.setReceiptCode(receiptCode);
         } else {
-            importReceipt.setReceiptCode(request.getInvoiceCode());
+            String customCode = request.getInvoiceCode().trim();
+            if (importReceiptRepository.existsByReceiptCode(customCode)) {
+                throw new IllegalArgumentException("Mã hóa đơn '" + customCode + "' đã tồn tại!");
+            }
+            importReceipt.setReceiptCode(customCode);
         }
 
         // 2. NGƯỜI LẬP PHIẾU (Tạm gán cứng, sau này lấy từ Spring Security Token)
@@ -86,8 +95,14 @@ public class ImportReceiptService {
 
         // BƯỚC 1: HOÀN TÁC TRẠNG THÁI CŨ
         // Trừ đi số lượng tồn kho của các item CŨ đã từng được cộng vào trước đó
-        for (ImportItem oldItem : existing.getImportItems()) {
-            materialService.updateStock(oldItem.getMaterial().getId(), -oldItem.getQuantity());
+        // (Chỉ thực hiện nếu phiếu chưa bị hủy. Nếu đã hủy, kho đã được hoàn tác từ trước)
+        if (existing.getStatus() != ReceiptStatus.CANCELLED) {
+            for (ImportItem oldItem : existing.getImportItems()) {
+                materialService.updateStock(oldItem.getMaterial().getId(), -oldItem.getQuantity());
+            }
+        } else {
+            // Nếu đã hủy, khi chỉnh sửa/lưu lại sẽ chuyển trạng thái về COMPLETED
+            existing.setStatus(ReceiptStatus.COMPLETED);
         }
 
         // Xóa sạch các item cũ trong danh sách hiện tại để JPA xóa chúng trong database
@@ -97,6 +112,16 @@ public class ImportReceiptService {
         // BƯỚC 2: CẬP NHẬT THÔNG TIN PHIẾU
         existing.setImportDate(request.getImportDate());
         existing.setNote(request.getNote());
+
+        if (request.getInvoiceCode() != null && !request.getInvoiceCode().trim().isEmpty()) {
+            String newCode = request.getInvoiceCode().trim();
+            if (!newCode.equalsIgnoreCase(existing.getReceiptCode())) {
+                if (importReceiptRepository.existsByReceiptCode(newCode)) {
+                    throw new IllegalArgumentException("Mã hóa đơn '" + newCode + "' đã tồn tại!");
+                }
+                existing.setReceiptCode(newCode);
+            }
+        }
 
         // BƯỚC 3: ÁP DỤNG TRẠNG THÁI MỚI
         // Lặp qua danh sách request mới, cộng kho và tạo item mới
